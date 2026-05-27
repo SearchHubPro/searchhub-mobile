@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>SearchHub Sniper Mobile</title>
+  <title>SearchHub Mobile</title>
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SearchHub S">
+  <meta name="apple-mobile-web-app-title" content="SearchHub">
   
   <link rel="apple-touch-icon-precomposed" href="https://i.ibb.co/Xrt68V7p/icon.png">
   <link rel="shortcut icon" href="https://i.ibb.co/Xrt68V7p/icon.png">
@@ -99,7 +99,7 @@
     <div class="header">
       <button class="header-btn" onclick="forceReload(this)"><i class="fas fa-sync-alt"></i></button>
       <div>
-        <h1>SearchHub Sniper Mobile</h1>
+        <h1>SearchHub Mobile</h1>
         <div class="last-update" id="lastUpdate">読込中...</div>
       </div>
       <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
@@ -113,7 +113,7 @@
       <button class="tab-btn" onclick="switchTab('site-s-paypay', this)">Sヤフフリ</button>
       <button class="tab-btn" onclick="switchTab('site-s-offmall', this)">Sオフモ</button>
       <button class="tab-btn" onclick="switchTab('site-mercari', this)">メルカリ</button>
-      <button class="tab-btn" onclick="switchTab('site-paypay', this)">ヤフオク</button>
+      <button class="tab-btn" onclick="switchTab('site-paypay', this)">ヤフフリ</button>
       <button class="tab-btn" onclick="switchTab('site-yahoo', this)">ヤフオク</button>
       <button class="tab-btn" onclick="switchTab('site-offmall', this)">オフモ</button>
       <button class="tab-btn" onclick="switchTab('site-2nd', this)">セカスト</button>
@@ -158,8 +158,6 @@
       set: function(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
     };
 
-    // 🚨 GASから送られてくるキー（JSONの属性名）とのマッピング
-    // ここがGAS側と一致してないと表示されないから、必要に応じてGAS側の名前に合わせてな！
     const siteKeyMap = {
       'site-s-mercari': 'Sメルカリ',
       'site-s-paypay': 'Sヤフフリ',
@@ -221,7 +219,6 @@
       const sBtn = document.getElementById("searchBtn");
       if (sBtn) sBtn.disabled = true;
 
-      // ダミー環境対策（GAS環境外でもスプラッシュが消えるように）
       if(typeof google === 'undefined') {
          setTimeout(() => {
            const loader = document.getElementById("loader");
@@ -306,7 +303,6 @@
 
       google.script.run
         .withSuccessHandler(function(data) {
-          // 💡 読み込み完了！スプラッシュ画像をフェードアウトさせて消す
           const loader = document.getElementById("loader");
           if (loader && loader.style.display !== "none") {
             loader.style.opacity = "0";
@@ -436,7 +432,6 @@
       runAmazonResearch();
     }
 
-    // 🚨 ASINコピペ（アイコンがチェックに変わる演出つき）
     function copyAsin(asin) {
       if (asin && asin !== "B000000000") {
         navigator.clipboard.writeText(asin).then(() => {
@@ -451,7 +446,6 @@
       }
     }
 
-    // 🚨 型番でAmazon検索する関数
     function searchAmazonKeyword() {
       let modelText = document.getElementById('itemModelText') ? document.getElementById('itemModelText').innerText.trim() : '';
       if (!modelText || modelText === '-') {
@@ -466,7 +460,7 @@
       const resView = document.getElementById("amazonResult");
 
       let apiKey = globalKeepa;
-      if (!apiKey) apiKey = localStorage.getItem('sh_free_keepa_key'); // フォールバック
+      if (!apiKey) apiKey = localStorage.getItem('sh_free_keepa_key'); 
 
       if (!kw) { alert("キーワードかASINを入力してな！"); return; }
       if (!apiKey) { alert("PCの親機(GAS)からKeepaAPIキーを設定してな！"); return; }
@@ -521,7 +515,6 @@
           imgHtml = '<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="' + imageUrl + '" style="width:100%; height:100%; object-fit:contain;"></div>';
         }
 
-        // 🚨 漆黒プロ仕様のUI構築
         resView.innerHTML = `
           <div class="card" style="display:flex; gap:12px; align-items:center; margin-bottom:16px;">
             ${imgHtml}
