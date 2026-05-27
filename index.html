@@ -26,17 +26,21 @@
     .header-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; outline: none; padding: 5px; transition: transform 0.5s ease; display: flex; align-items: center; justify-content: center;}
     .last-update { font-size: 10px; color: #a0aec0; margin-top: 2px; }
     
-    /* Discordオンオフボタン用のスタイル */
     .discord-btn { font-size: 20px; transition: color 0.3s, transform 0.1s; }
     .discord-btn:active { transform: scale(0.9); }
-    .discord-on { color: #5865F2 !important; } /* Discordのブランドカラー */
-    .discord-off { color: #4a5568 !important; opacity: 0.4; } /* スリープ色 */
+    .discord-on { color: #5865F2 !important; }
+    .discord-off { color: #4a5568 !important; opacity: 0.4; }
 
     .tabs-container { background-color: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: calc(52px + env(safe-area-inset-top)); z-index: 99; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .tabs-container::-webkit-scrollbar { display: none; }
     .tabs { display: flex; white-space: nowrap; padding: 0 4px; }
-    .tab-btn { padding: 12px 14px; background: none; border: none; font-size: 12px; font-weight: bold; color: #718096; border-bottom: 3px solid transparent; outline: none; flex-shrink: 0; }
+    .tab-btn { position: relative; padding: 12px 14px; background: none; border: none; font-size: 12px; font-weight: bold; color: #718096; border-bottom: 3px solid transparent; outline: none; flex-shrink: 0; }
     .tab-btn.active { color: #2b6cb0; border-bottom-color: #2b6cb0; background-color: #ebf8ff; }
+    
+    /* 🔴 タブの未読新着ドット（赤丸） */
+    .tab-dot { display: none; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background-color: #e53e3e; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .tab-dot.active { display: block; animation: pop 0.3s ease; }
+    @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
     
     .content { padding: 12px; min-height: 80vh; transform: translate3d(0,0,0); }
     .tab-content { display: none; }
@@ -74,7 +78,6 @@
     .badge { padding: 2px 6px; border-radius: 4px; font-weight: 900; font-size: 10px; }
     
     .register-btn { background: #243c5a; color: white; border: none; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); transition: background 0.2s; }
-    .register-btn:disabled { background: #a0aec0; }
     
     .item-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; }
     .item-title a { color: #2b6cb0; text-decoration: none; display: block; line-height: 1.4; word-break: break-all; }
@@ -88,7 +91,6 @@
     .splash-text { position: absolute; bottom: 60px; color: white; font-size: 14px; font-weight: bold; letter-spacing: 2px; animation: pulse 1.5s infinite; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-    /* 設定モーダル */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
     .modal-content { background: white; padding: 20px; border-radius: 12px; width: 85%; max-width: 340px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { margin-top: 0; font-size: 15px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
@@ -111,12 +113,10 @@
         <button class="header-btn" onclick="openConfig()"><i class="fas fa-cog"></i></button>
         <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
       </div>
-      
       <div class="header-center">
         <h1>SearchHub Mobile</h1>
-        <div class="last-update" id="lastUpdate">読込中...</div>
+        <div class="last-update" id="lastUpdate">待機中...</div>
       </div>
-      
       <div class="header-right">
         <button class="header-btn discord-btn discord-off" id="dcToggleBtn" onclick="toggleDiscord()"><i class="fab fa-discord"></i></button>
         <button class="header-btn" onclick="forceReload(this)"><i class="fas fa-sync-alt"></i></button>
@@ -127,19 +127,19 @@
   <div class="tabs-container">
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('amazon-tab', this)">🔍 Amazon</button>
-      <button class="tab-btn" onclick="switchTab('site-s-mercari', this)">Sメルカリ</button>
-      <button class="tab-btn" onclick="switchTab('site-s-paypay', this)">Sヤフフリ</button>
-      <button class="tab-btn" onclick="switchTab('site-s-offmall', this)">Sオフモ</button>
-      <button class="tab-btn" onclick="switchTab('site-mercari', this)">メルカリ</button>
-      <button class="tab-btn" onclick="switchTab('site-paypay', this)">ヤフフリ</button>
-      <button class="tab-btn" onclick="switchTab('site-yahoo', this)">ヤフオク</button>
-      <button class="tab-btn" onclick="switchTab('site-offmall', this)">オフモ</button>
-      <button class="tab-btn" onclick="switchTab('site-2nd', this)">セカスト</button>
-      <button class="tab-btn" onclick="switchTab('site-rakuma', this)">ラクマ</button>
-      <button class="tab-btn" onclick="switchTab('site-surugaya', this)">駿河屋</button>
-      <button class="tab-btn" onclick="switchTab('site-yshopping', this)">ヤフショ</button>
-      <button class="tab-btn" onclick="switchTab('site-aupay', this)">au PAY</button>
-      <button class="tab-btn" onclick="switchTab('site-trefac', this)">トレファク</button>
+      <button class="tab-btn" onclick="switchTab('site-s-mercari', this)">Sメルカリ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-s-paypay', this)">Sヤフフリ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-s-offmall', this)">Sオフモ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-mercari', this)">メルカリ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-paypay', this)">ヤフフリ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-yahoo', this)">ヤフオク<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-offmall', this)">オフモ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-2nd', this)">セカスト<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-rakuma', this)">ラクマ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-surugaya', this)">駿河屋<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-yshopping', this)">ヤフショ<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-aupay', this)">au PAY<span class="tab-dot"></span></button>
+      <button class="tab-btn" onclick="switchTab('site-trefac', this)">トレファク<span class="tab-dot"></span></button>
     </div>
   </div>
 
@@ -154,10 +154,9 @@
       </div>
     </div>
 
-    <div id="site-s-mercari" class="tab-content"><div class="loading-spinner">サーバーから履歴を同期中...</div></div>
+    <div id="site-s-mercari" class="tab-content"><div class="loading-spinner">同期待機中...</div></div>
     <div id="site-s-paypay" class="tab-content"></div>
     <div id="site-s-offmall" class="tab-content"></div>
-    
     <div id="site-mercari" class="tab-content"></div>
     <div id="site-paypay" class="tab-content"></div>
     <div id="site-yahoo" class="tab-content"></div>
@@ -173,25 +172,17 @@
   <div id="configModal" class="modal">
     <div class="modal-content">
       <h3>⚙️ アプリ基本設定</h3>
-      
       <label>Keepa APIキー</label>
       <input type="text" id="cfgKeepa" placeholder="あなたのKeepaAPIキー">
-      
       <label>販売管理シートのURL</label>
       <input type="url" id="cfgSsUrl" placeholder="https://docs.google.com/spreadsheets/...">
-      
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
-      
       <label>S(スナイパー)側 GAS URL</label>
       <input type="url" id="cfgSniperUrl" placeholder="https://script.google.com/macros/.../exec">
-      
       <label>10サイト側 GAS URL</label>
       <input type="url" id="cfg10SiteUrl" placeholder="https://script.google.com/macros/.../exec">
-      
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
-      
       <button onclick="enablePushNotifications(this)" style="width:100%; background:#ff9900; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; margin-top:10px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🔔 スマホに通知を送る許可をする</button>
-      
       <div class="modal-actions">
         <button style="background:#e2e8f0; color:#4a5568;" onclick="closeConfig()">閉じる</button>
         <button style="background:#1a365d; color:white;" onclick="saveConfig()">設定を保存</button>
@@ -220,141 +211,84 @@
 
     let globalViewedLinks = [];
     let globalHistoryData = {};
-    let globalHistoryDay = "";
 
-    function openConfig() {
-      document.getElementById("cfgKeepa").value = AppStorage.get("sh_keepa", "");
-      document.getElementById("cfgSsUrl").value = AppStorage.get("sh_ssurl", "");
-      document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", "");
-      document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
-      document.getElementById("configModal").style.display = "flex";
-    }
-
-    function closeConfig() {
-      document.getElementById("configModal").style.display = "none";
-    }
-
-    function saveConfig() {
-      AppStorage.set("sh_keepa", document.getElementById("cfgKeepa").value.trim());
-      AppStorage.set("sh_ssurl", document.getElementById("cfgSsUrl").value.trim());
-      AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim());
-      AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
-      closeConfig();
-      syncPatrolData(); 
-    }
-
-    // ⚡ Discordのワンプッシュオンオフ制御
-    function updateDiscordBtnUI(status) {
-      const btn = document.getElementById("dcToggleBtn");
-      if (status === "on") {
-        btn.className = "header-btn discord-btn discord-on";
-      } else {
-        btn.className = "header-btn discord-btn discord-off";
+    function hideLoader() {
+      const loader = document.getElementById("loader");
+      if (loader && loader.style.display !== "none") {
+        loader.style.opacity = "0";
+        setTimeout(() => { loader.style.display = "none"; }, 500);
       }
     }
 
-    async function toggleDiscord() {
-      const sniperUrl = AppStorage.get("sh_sniper_url", "");
-      if (!sniperUrl) return alert("⚙️設定画面から『S(スナイパー)側 GAS URL』を先に登録してな！");
-
-      let currentStatus = AppStorage.get("sh_discord_toggle", "off");
-      let nextStatus = currentStatus === "on" ? "off" : "on";
-
-      // まずローカルのUIを先行して切り替えてサクサク感を出す
-      updateDiscordBtnUI(nextStatus);
-
-      try {
-        const res = await fetch(sniperUrl, {
-          method: 'POST',
-          body: JSON.stringify({ command: 'toggleDiscord', status: nextStatus })
-        });
-        const json = await res.json();
-        if (json.success) {
-          AppStorage.set("sh_discord_toggle", nextStatus);
-        } else {
-          updateDiscordBtnUI(currentStatus); // 失敗したら戻す
-          alert("Discord設定の同期に失敗したわ。");
+    // 🔴 魔法のバッジ計算・点灯機能
+    function recalcBadges() {
+      let totalUnread = 0;
+      for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
+        const container = document.getElementById(divId);
+        if(!container) continue;
+        
+        // 「新着（is-new-item）」かつ「まだ読んでない（not read-card）」の数を数える
+        const unreadCount = container.querySelectorAll('.card.is-new-item:not(.read-card)').length;
+        totalUnread += unreadCount;
+        
+        // タブの赤ドットをON/OFF
+        const tabBtn = document.querySelector(`button[onclick*="'${divId}'"]`);
+        if (tabBtn) {
+          const dot = tabBtn.querySelector('.tab-dot');
+          if (dot) {
+            if (unreadCount > 0) dot.classList.add('active');
+            else dot.classList.remove('active');
+          }
         }
-      } catch(e) {
-        updateDiscordBtnUI(currentStatus);
-        alert("GASとの通信エラーが発生しました。");
+      }
+      
+      // ホーム画面アプリアイコンの赤丸（PWAバッジ）を更新
+      if ('setAppBadge' in navigator) {
+        if (totalUnread > 0) {
+          navigator.setAppBadge(totalUnread).catch(() => {});
+        } else {
+          navigator.clearAppBadge().catch(() => {});
+        }
       }
     }
 
+    // 👆 タップされたら既読にして赤丸を消す
     function markAsRead(element) {
       const card = element.closest('.card');
       if (card) { card.classList.add('read-card'); }
       
       const url = element.getAttribute('data-url');
-      if (url) {
-        if (!globalViewedLinks.includes(url)) {
-          globalViewedLinks.push(url);
-          AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
-        }
+      if (url && !globalViewedLinks.includes(url)) {
+        globalViewedLinks.push(url);
+        AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
       }
-    }
-
-    function forceReload(btn) {
-      btn.style.transform = "rotate(360deg)";
-      setTimeout(() => btn.style.transform = "rotate(0deg)", 500);
-      syncPatrolData(); 
+      recalcBadges(); // 即座に赤丸を計算し直す
     }
 
     document.addEventListener("DOMContentLoaded", function() {
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
-      try { globalHistoryData = JSON.parse(AppStorage.get("sh_history_data", "{}")); } catch(e) { globalHistoryData = {}; }
-      
-      // Discordボタンの初期状態反映
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
-
-      const now = new Date();
-      globalHistoryDay = new Date(now.getTime() - 4 * 60 * 60 * 1000).toDateString();
-      
       setupSwipe();
       
       const urlSniper = AppStorage.get("sh_sniper_url", "");
       const url10 = AppStorage.get("sh_tensite_url", "");
-      
+
+      // 🛡️ フリーズ強制解除タイマー（8秒経ったら何が何でも黒画面を消す！）
+      setTimeout(() => { hideLoader(); }, 8000);
+
       if(!urlSniper && !url10) {
         setTimeout(() => {
-          const loader = document.getElementById("loader");
-          if(loader) { loader.style.opacity = "0"; setTimeout(()=>loader.style.display="none", 500); }
+          hideLoader();
           document.getElementById("lastUpdate").innerText = "設定未完了";
           openConfig(); 
         }, 1500);
       } else {
-        syncPatrolData();
+        // 🚀 通信ディレイ：電波が起きるまで「0.8秒」だけ意図的に待ってからGASへ出撃！
+        setTimeout(() => {
+          syncPatrolData();
+        }, 800);
       }
     });
-
-    function setupSwipe() {
-      let touchStartX = 0; let touchStartY = 0;
-      const contentArea = document.querySelector('.content');
-      contentArea.addEventListener('touchstart', function(e) {
-        touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
-      }, {passive: true});
-
-      contentArea.addEventListener('touchend', function(e) {
-        const diffX = e.changedTouches[0].clientX - touchStartX;
-        const diffY = e.changedTouches[0].clientY - touchStartY;
-        if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
-          const activeContent = document.querySelector('.tab-content.active');
-          if (!activeContent) return;
-          let currentIndex = tabOrder.indexOf(activeContent.id);
-          if (diffX < 0 && currentIndex < tabOrder.length - 1) swipeToTab(tabOrder[currentIndex + 1]);
-          else if (diffX > 0 && currentIndex > 0) swipeToTab(tabOrder[currentIndex - 1]);
-        }
-      }, {passive: true});
-    }
-
-    function swipeToTab(targetId) {
-      const btns = document.querySelectorAll('.tab-btn');
-      const index = tabOrder.indexOf(targetId);
-      if (index !== -1 && btns[index]) {
-        switchTab(targetId, btns[index]);
-        btns[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
-    }
 
     async function syncPatrolData() {
       document.getElementById("lastUpdate").innerText = "データ同期中...";
@@ -373,12 +307,8 @@
         else fetchPromises.push(Promise.resolve(null));
 
         const [resSniper, res10] = await Promise.all(fetchPromises);
-
-        const loader = document.getElementById("loader");
-        if (loader && loader.style.display !== "none") {
-          loader.style.opacity = "0";
-          setTimeout(() => { loader.style.display = "none"; }, 500);
-        }
+        
+        hideLoader(); // データが届いたら黒画面を消す
 
         let mergedSites = {};
         
@@ -386,8 +316,6 @@
           mergedSites['Sメルカリ'] = resSniper.sites['メルカリ'] || [];
           mergedSites['Sヤフフリ'] = resSniper.sites['ヤフーフリマ'] || [];
           mergedSites['Sオフモ'] = resSniper.sites['オフモール'] || [];
-          
-          // バックエンド側にある本物のDiscord設定状況とスマホの表記を一致させる
           if (resSniper.discordStatus) {
             AppStorage.set("sh_discord_toggle", resSniper.discordStatus);
             updateDiscordBtnUI(resSniper.discordStatus);
@@ -400,57 +328,26 @@
 
         document.getElementById("lastUpdate").innerText = "最終更新: " + Utilities_formatDate(new Date());
 
-        const now = new Date();
-        const currentDayKey = new Date(now.getTime() - 4 * 60 * 60 * 1000).toDateString();
-        if (globalHistoryDay && globalHistoryDay !== currentDayKey) {
-          globalHistoryData = {};
-          globalViewedLinks = [];
-          globalHistoryDay = currentDayKey;
-        }
-
-        let dailyHistory = globalHistoryData;
-        let viewedLinks = globalViewedLinks;
+        // 🚀 完全同期（True Sync）ロジック
+        // GAS側から「空っぽ」が送られてきたら、スマホの記憶も強制的に空っぽで上書きする！
+        globalHistoryData = mergedSites;
 
         for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
           const container = document.getElementById(divId);
-          const currentItems = mergedSites[gasSiteName] || [];
-
-          if (!dailyHistory[gasSiteName]) dailyHistory[gasSiteName] = [];
-
-          for (let i = currentItems.length - 1; i >= 0; i--) {
-            const newItem = currentItems[i];
-            let isNewlyUpdated = false; 
-            
-            const existingIndex = dailyHistory[gasSiteName].findIndex(h => h.url === newItem.url);
-            
-            if (existingIndex !== -1) {
-              const oldItem = dailyHistory[gasSiteName][existingIndex];
-              if (oldItem.status !== newItem.status || oldItem.price !== newItem.price) {
-                isNewlyUpdated = true; 
-              }
-              dailyHistory[gasSiteName].splice(existingIndex, 1); 
-            } else {
-              isNewlyUpdated = true;
-            }
-            
-            dailyHistory[gasSiteName].unshift(newItem); 
-
-            if (isNewlyUpdated && newItem.status.includes("あり") && !newItem.status.includes("変化なし")) {
-              const viewedIdx = viewedLinks.indexOf(newItem.url);
-              if (viewedIdx !== -1) viewedLinks.splice(viewedIdx, 1); 
-            }
-          }
-
-          const siteHistory = dailyHistory[gasSiteName];
+          const currentItems = globalHistoryData[gasSiteName] || [];
+          
           container.innerHTML = "";
           
-          if (siteHistory.length === 0) {
+          if (currentItems.length === 0) {
             container.innerHTML = '<div class="no-data">「' + gasSiteName + '」に現在、新着・利益商品は見つかっていません。</div>';
           } else {
-            siteHistory.forEach(function(item) {
+            currentItems.forEach(function(item) {
+              const isNew = item.status.includes("あり") && !item.status.includes("変化なし");
+              const isRead = globalViewedLinks.includes(item.url);
+              
+              // 🔴 新着かつ未読なら "is-new-item" クラスを付けてバッジ集計の対象にする
               const card = document.createElement("div");
-              card.className = "card";
-              if (viewedLinks.includes(item.url)) card.className = "card read-card";
+              card.className = "card" + (isRead ? " read-card" : "") + (isNew ? " is-new-item" : "");
               
               let htmlStr = '<div class="item-title">' +
                 '<a href="' + item.url + '" target="_blank" data-url="' + item.url + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a>' +
@@ -472,14 +369,86 @@
           }
         }
         
-        AppStorage.set("sh_history_data", JSON.stringify(dailyHistory));
-        AppStorage.set("sh_viewed_links", JSON.stringify(viewedLinks));
+        AppStorage.set("sh_history_data", JSON.stringify(globalHistoryData));
+        recalcBadges(); // 画面描写が終わったらバッジ（赤丸）を計算して点灯！
 
       } catch(err) {
         document.getElementById("lastUpdate").innerText = "通信失敗";
-        const loader = document.getElementById("loader");
-        if(loader) { loader.style.opacity = "0"; setTimeout(()=>loader.style.display="none", 500); }
+        hideLoader();
       }
+    }
+
+    function forceReload(btn) {
+      btn.style.transform = "rotate(360deg)";
+      setTimeout(() => btn.style.transform = "rotate(0deg)", 500);
+      syncPatrolData(); 
+    }
+
+    function openConfig() {
+      document.getElementById("cfgKeepa").value = AppStorage.get("sh_keepa", "");
+      document.getElementById("cfgSsUrl").value = AppStorage.get("sh_ssurl", "");
+      document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", "");
+      document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
+      document.getElementById("configModal").style.display = "flex";
+    }
+    function closeConfig() { document.getElementById("configModal").style.display = "none"; }
+    function saveConfig() {
+      AppStorage.set("sh_keepa", document.getElementById("cfgKeepa").value.trim());
+      AppStorage.set("sh_ssurl", document.getElementById("cfgSsUrl").value.trim());
+      AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim());
+      AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
+      closeConfig();
+      syncPatrolData(); 
+    }
+
+    function updateDiscordBtnUI(status) {
+      const btn = document.getElementById("dcToggleBtn");
+      btn.className = status === "on" ? "header-btn discord-btn discord-on" : "header-btn discord-btn discord-off";
+    }
+    async function toggleDiscord() {
+      const sniperUrl = AppStorage.get("sh_sniper_url", "");
+      if (!sniperUrl) return alert("⚙️設定画面から『S(スナイパー)側 GAS URL』を先に登録してな！");
+      let currentStatus = AppStorage.get("sh_discord_toggle", "off");
+      let nextStatus = currentStatus === "on" ? "off" : "on";
+      updateDiscordBtnUI(nextStatus);
+      try {
+        const res = await fetch(sniperUrl, { method: 'POST', body: JSON.stringify({ command: 'toggleDiscord', status: nextStatus }) });
+        const json = await res.json();
+        if (json.success) AppStorage.set("sh_discord_toggle", nextStatus);
+        else { updateDiscordBtnUI(currentStatus); alert("設定の同期に失敗したわ。"); }
+      } catch(e) { updateDiscordBtnUI(currentStatus); alert("通信エラーが発生しました。"); }
+    }
+
+    function setupSwipe() {
+      let touchStartX = 0; let touchStartY = 0;
+      const contentArea = document.querySelector('.content');
+      contentArea.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive: true});
+      contentArea.addEventListener('touchend', function(e) {
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        const diffY = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
+          const activeContent = document.querySelector('.tab-content.active');
+          if (!activeContent) return;
+          let currentIndex = tabOrder.indexOf(activeContent.id);
+          if (diffX < 0 && currentIndex < tabOrder.length - 1) swipeToTab(tabOrder[currentIndex + 1]);
+          else if (diffX > 0 && currentIndex > 0) swipeToTab(tabOrder[currentIndex - 1]);
+        }
+      }, {passive: true});
+    }
+
+    function swipeToTab(targetId) {
+      const btns = document.querySelectorAll('.tab-btn');
+      const index = tabOrder.indexOf(targetId);
+      if (index !== -1 && btns[index]) {
+        switchTab(targetId, btns[index]);
+        btns[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+    function switchTab(targetId, btn) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+      btn.classList.add('active');
     }
 
     function Utilities_formatDate(date) {
@@ -489,13 +458,18 @@
       return `${y}/${m}/${d} ${h}:${min}`;
     }
 
-    function switchTab(targetId, btn) {
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(targetId).classList.add('active');
-      btn.classList.add('active');
+    function escapeHtml(str) {
+      if(!str) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
+    function openManager() {
+      const url = AppStorage.get("sh_ssurl", "");
+      if (!url) { openConfig(); return alert("⚙️設定から販売管理シートのURLを設定してな！"); }
+      window.open(url, "_blank");
+    }
+
+    // --- Amazon Keepa 関連関数 (省略せずそのまま維持) ---
     function jumpToAmazonResearch(asin, title) {
       document.getElementById("amazonKw").value = asin;
       const btns = document.querySelectorAll('.tab-btn');
@@ -503,68 +477,51 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
       runAmazonResearch(title);
     }
-
     function copyAsin(asin) {
       if (asin && asin !== "B000000000") {
         navigator.clipboard.writeText(asin).then(() => {
           const icon = document.getElementById('copyIcon');
-          if(icon) {
-             icon.className = "fas fa-check text-green-500 text-[12px] ml-1";
-             setTimeout(() => { icon.className = "far fa-copy text-gray-400 text-[12px] ml-1"; }, 1500);
-          }
+          if(icon) { icon.className = "fas fa-check text-green-500 text-[12px] ml-1"; setTimeout(() => { icon.className = "far fa-copy text-gray-400 text-[12px] ml-1"; }, 1500); }
         });
       }
     }
-
     function searchAmazonKeyword() {
       let modelText = document.getElementById('itemModelText') ? document.getElementById('itemModelText').innerText.trim() : '';
       if (!modelText || modelText === '-') modelText = document.getElementById('amazonKw').value.trim();
       if (!modelText) return alert("検索するキーワードがありません。");
       window.open(`https://www.google.com/search?q=${encodeURIComponent(modelText + ' amazon')}`, '_blank');
     }
-
     async function runAmazonResearch(fallbackTitle) {
       const kw = document.getElementById("amazonKw").value.trim();
       const resView = document.getElementById("amazonResult");
       const apiKey = AppStorage.get("sh_keepa", "");
-
       if (!kw) return alert("キーワードかASINを入力してな！");
       if (!apiKey) { openConfig(); return alert("⚙️設定からKeepaAPIキーを入力してな！"); }
-
       resView.innerHTML = '<div class="loading-spinner">⌛ Keepa APIと高速通信・解析中...</div>';
-
       try {
         let asin = kw;
         if (!/^[A-Z0-9]{10}$/i.test(kw)) {
           const searchRes = await fetch('https://api.keepa.com/search?key=' + apiKey + '&domain=5&type=product&term=' + encodeURIComponent(kw));
           const searchJson = await searchRes.json();
-          if (!searchJson.products || searchJson.products.length === 0) {
-            resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 商品が見つかりませんでした。</div>';
-            return;
-          }
+          if (!searchJson.products || searchJson.products.length === 0) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 商品が見つかりませんでした。</div>'; return; }
           asin = searchJson.products[0].asin;
         }
-
         const prodRes = await fetch('https://api.keepa.com/product?key=' + apiKey + '&domain=5&asin=' + asin + '&stats=90');
         const prodJson = await prodRes.json();
         const p = prodJson.products[0];
-        
         const productTitle = p.title || fallbackTitle || '不明';
         const modelNum = p.model || '不明';
-
         let imgRaw = '';
         if (p.images && p.images.length > 0) {
           const firstImg = p.images[0];
           imgRaw = (typeof firstImg === 'object') ? (firstImg.l || firstImg.m || firstImg.s) : firstImg;
         } else if (p.imagesCSV) imgRaw = p.imagesCSV.split(',')[0];
         let imageUrl = imgRaw ? (imgRaw.startsWith('http') ? imgRaw : 'https://images-na.ssl-images-amazon.com/images/I/' + imgRaw) : '';
-
         const avgUsed = p.stats.avg90 && p.stats.avg90[2] !== -1 ? p.stats.avg90[2] : 0;
         const minUsed = p.stats.current && p.stats.current[2] !== -1 ? p.stats.current[2] : 0;
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
         const drops = p.stats.salesRankDrops90 || 0;
         const score = Math.floor(drops / 3) * 2;
-        
         let rank = 'E', rColor = '#808080';
         if (score >= 100) { rank = 'SR'; rColor = '#ff4500'; }
         else if (score >= 50) { rank = 'S'; rColor = '#ff8c00'; }
@@ -572,7 +529,6 @@
         else if (score >= 15) { rank = 'B'; rColor = '#32cd32'; }
         else if (score >= 5) { rank = 'C'; rColor = '#1e90ff'; }
         else if (score >= 1) { rank = 'D'; rColor = '#808080'; }
-
         const sizeTier = fbaFee > 650 ? "大型" : "標準";
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
@@ -596,18 +552,10 @@
               </div>
             </div>
           </div>
-          
           <div class="market-price-container">
-            <div class="market-price-card average">
-              <div class="price-label">中古平均(90)</div>
-              <div class="price-val">¥${avgUsed > 0 ? avgUsed.toLocaleString() : '0'}</div>
-            </div>
-            <div class="market-price-card lowest">
-              <div class="price-label">中古最安値</div>
-              <div class="price-val">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div>
-            </div>
+            <div class="market-price-card average"><div class="price-label">中古平均(90)</div><div class="price-val">¥${avgUsed > 0 ? avgUsed.toLocaleString() : '0'}</div></div>
+            <div class="market-price-card lowest"><div class="price-label">中古最安値</div><div class="price-val">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div></div>
           </div>
-          
           <div class="calc-box">
             <div class="calc-row"><span>仕入れ値</span><input type="number" id="bPrice" value="0"></div>
             <div class="calc-row"><span>経費/送料</span><input type="number" id="ePrice" value="0"></div>
@@ -619,18 +567,13 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; color:#90cdf4;"><span>入金目安</span><span id="resNyukin">--</span></div>
             <div style="display:flex; justify-content:space-between; font-size:18px; color:#48bb78;"><span>想定利益</span><span id="resProfit">--</span></div>
           </div>
-          
-          <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:16px;">
-            🚀 販売管理sheetへ仕入れ登録
-          </button>
-
+          <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:16px;">🚀 販売管理sheetへ仕入れ登録</button>
           <div class="grid-3">
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
             <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none;">検索</button>
             <a href="https://www.amazon.co.jp/dp/${asin}" target="_blank" class="btn-link" style="background:#f7941d;">Amazon</a>
           </div>
         `;
-
         const updateCalc = function() {
           const sPrice = parseInt(document.getElementById('sPrice').value) || 0;
           const bPrice = parseInt(document.getElementById('bPrice').value) || 0;
@@ -639,62 +582,28 @@
           const nyukin = sPrice - comm - fbaFee;
           const profit = nyukin - bPrice - ePrice;
           const margin = sPrice > 0 ? Math.floor((profit / sPrice) * 100) : 0;
-          
           document.getElementById('resComm').innerText = '-¥' + comm.toLocaleString();
           document.getElementById('resNyukin').innerText = '¥' + nyukin.toLocaleString();
           document.getElementById('resProfit').innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
           document.getElementById('resProfit').style.color = profit >= 0 ? '#48bb78' : '#e53e3e';
         };
-
         ['sPrice', 'bPrice', 'ePrice'].forEach(id => { document.getElementById(id).addEventListener('input', updateCalc); });
         updateCalc();
-
-      } catch (err) {
-        resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>';
-      }
+      } catch (err) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>'; }
     }
-
     async function sendToManager(asin) {
       const btn = document.getElementById("regBtn");
       const ssUrl = AppStorage.get("sh_ssurl", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "");
       if(!targetGasUrl) targetGasUrl = AppStorage.get("sh_sniper_url", "");
-
       if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
-
       btn.disabled = true; btn.innerHTML = "⌛ 登録中...";
-
       try {
-        const res = await fetch(targetGasUrl, {
-          method: 'POST',
-          body: JSON.stringify({
-            command: 'register',
-            ssUrl: ssUrl,
-            data: { asin: asin, buyPrice: document.getElementById("bPrice").value, shipping: document.getElementById("ePrice").value, sellPrice: document.getElementById("sPrice").value }
-          })
-        });
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'register', ssUrl: ssUrl, data: { asin: asin, buyPrice: document.getElementById("bPrice").value, shipping: document.getElementById("ePrice").value, sellPrice: document.getElementById("sPrice").value } }) });
         const resJson = await res.json();
-        if (resJson.success) {
-          btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！";
-        } else {
-          alert("登録失敗: " + resJson.message);
-          btn.disabled = false; btn.innerHTML = "🚀 再試行";
-        }
-      } catch(err) {
-        alert("通信エラーが発生しました");
-        btn.disabled = false; btn.innerHTML = "🚀 再試行";
-      }
-    }
-
-    function openManager() {
-      const url = AppStorage.get("sh_ssurl", "");
-      if (!url) { openConfig(); return alert("⚙️設定から販売管理シートのURLを設定してな！"); }
-      window.open(url, "_blank");
-    }
-
-    function escapeHtml(str) {
-      if(!str) return "";
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        if (resJson.success) { btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！"; }
+        else { alert("登録失敗: " + resJson.message); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
+      } catch(err) { alert("通信エラーが発生しました"); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
     }
   </script>
 
@@ -718,27 +627,18 @@
       try {
         btn.innerText = "⌛ 通知設定を生成中や…ちょっと待ってな！";
         btn.disabled = true;
-
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          
           const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-
           const currentToken = await getToken(messaging, { 
             vapidKey: "BJMWJMJx2CGiDNuLq7xixOKeBlN8Hd3vNvbx4QmK7mf1R3ccUCXuP0o-ZlsRurw7MhpiwWLZuvu57twS5jypqlU",
             serviceWorkerRegistration: registration
           });
-          
           if (currentToken) {
-            console.log("FCM Token:", currentToken);
             AppStorage.set("sh_fcm_token", currentToken);
-            
             const sniperUrl = AppStorage.get("sh_sniper_url", "");
             if (sniperUrl) {
-              fetch(sniperUrl, {
-                method: 'POST',
-                body: JSON.stringify({ command: 'saveToken', token: currentToken })
-              });
+              fetch(sniperUrl, { method: 'POST', body: JSON.stringify({ command: 'saveToken', token: currentToken }) });
               alert("✅ 通知設定が完了したで！スナイパーGASと連携したわ！");
               btn.innerText = "✅ 通知設定完了";
             } else {
@@ -757,16 +657,11 @@
           btn.disabled = false;
         }
       } catch (err) {
-        console.error('Error:', err);
         alert("【エラー詳細】\n" + err.name + "\n" + err.message);
         btn.innerText = "🔔 スマホに通知を送る許可をする";
         btn.disabled = false;
       }
     }
-
-    onMessage(messaging, (payload) => {
-      alert("🔔 新着検知: " + payload.notification.title + "\n" + payload.notification.body);
-    });
   </script>
 </body>
 </html>
