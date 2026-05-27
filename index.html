@@ -323,8 +323,18 @@
         }
 
         let mergedSites = {};
-        if (resSniper && !resSniper.error && resSniper.sites) Object.assign(mergedSites, resSniper.sites);
-        if (res10 && !res10.error && res10.sites) Object.assign(mergedSites, res10.sites);
+        
+        // 💡 修正ポイント：スナイパーGASのデータを「Sタブ用」にリネームしてマージする
+        if (resSniper && !resSniper.error && resSniper.sites) {
+          mergedSites['Sメルカリ'] = resSniper.sites['メルカリ'] || [];
+          mergedSites['Sヤフフリ'] = resSniper.sites['ヤフーフリマ'] || [];
+          mergedSites['Sオフモ'] = resSniper.sites['オフモール'] || [];
+        }
+        
+        // 10サイト側のデータはそのままマージ
+        if (res10 && !res10.error && res10.sites) {
+          Object.assign(mergedSites, res10.sites);
+        }
 
         document.getElementById("lastUpdate").innerText = "最終更新: " + Utilities_formatDate(new Date());
 
