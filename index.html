@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>SearchHub Mobile</title>
   
@@ -18,15 +17,14 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Meiryo", sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; padding-bottom: 30px; }
     
-    /* 📱 ステータスバー黒塗り対策用ヘッダー */
     .header-wrapper { position: sticky; top: 0; z-index: 100; background-color: #000000; padding-top: env(safe-area-inset-top); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .header { background-color: #1a365d; color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
-    .header h1 { margin: 0; font-size: 14px; letter-spacing: 0.5px; flex: 1; text-align: center; }
-    .header-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; outline: none; padding: 5px; transition: transform 0.5s ease; }
-    .last-update { font-size: 10px; color: #a0aec0; margin-top: 1px; text-align: center;}
+    .header-left { display: flex; gap: 12px; align-items: center; }
+    .header h1 { margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; text-align: center; }
+    .header-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; outline: none; padding: 5px; transition: transform 0.5s ease; display: flex; align-items: center; justify-content: center;}
+    .last-update { font-size: 10px; color: #a0aec0; margin-top: 2px; text-align: center;}
     
-    /* タブの高さ計算にセーフエリアを足す */
-    .tabs-container { background-color: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: calc(48px + env(safe-area-inset-top)); z-index: 99; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tabs-container { background-color: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: calc(52px + env(safe-area-inset-top)); z-index: 99; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .tabs-container::-webkit-scrollbar { display: none; }
     .tabs { display: flex; white-space: nowrap; padding: 0 4px; }
     .tab-btn { padding: 12px 14px; background: none; border: none; font-size: 12px; font-weight: bold; color: #718096; border-bottom: 3px solid transparent; outline: none; flex-shrink: 0; }
@@ -49,9 +47,7 @@
     .search-box { display: flex; gap: 6px; margin-bottom: 12px; }
     .search-box input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; outline: none; background: white; }
     .search-box button { background: #07A27B; color: #fff; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
-    .search-box button:disabled { background: #a0aec0; }
 
-    /* 📊 綺麗に色分けされた相場ブロック */
     .market-price-container { display: flex; gap: 8px; margin-bottom: 12px; }
     .market-price-card { flex: 1; padding: 10px 12px; border-radius: 8px; text-align: center; }
     .market-price-card.average { background: #f0f4ff; border: 1px solid #dbeafe; }
@@ -61,7 +57,6 @@
     .market-price-card.lowest .price-label { font-size: 11px; color: #b24a5e; font-weight: bold; margin-bottom: 2px; }
     .market-price-card.lowest .price-val { font-size: 20px; font-weight: bold; color: #b52a45; }
 
-    /* 🧮 漆黒のプロ仕様計算機 */
     .calc-box { background: #333333; color: #fff; padding: 16px; border-radius: 12px; font-size: 14px; font-weight: bold; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .calc-row { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .calc-row input { width: 120px; text-align: right; font-size: 14px; font-weight: bold; border-radius: 4px; border: none; padding: 4px 8px; color: #000; background: white; outline: none; }
@@ -71,7 +66,6 @@
     .badge { padding: 2px 6px; border-radius: 4px; font-weight: 900; font-size: 10px; }
     
     .register-btn { background: #243c5a; color: white; border: none; width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); transition: background 0.2s; }
-    .register-btn:active { transform: translateY(2px); box-shadow: none; }
     .register-btn:disabled { background: #a0aec0; }
     
     .item-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; }
@@ -79,13 +73,21 @@
     .item-meta { font-size: 11px; color: #718096; display: flex; justify-content: space-between; align-items: center; }
     .status-tag { color: #e53e3e; font-weight: bold; }
     .price-tag { color: #07A27B; font-size: 14px; font-weight: 900; }
-    .auto-asin-btn { background: #ff9900; color: #fff; border: none; padding: 8px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; width: 100%; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .auto-asin-btn { background: #ff9900; color: #fff; border: none; padding: 8px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; width: 100%; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; margin-top:8px;}
 
-    /* 🌟 画面いっぱいのスプラッシュスクリーン */
     #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s; }
     .splash-img { width: 100%; height: 100%; object-fit: cover; }
     .splash-text { position: absolute; bottom: 60px; color: white; font-size: 14px; font-weight: bold; letter-spacing: 2px; animation: pulse 1.5s infinite; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* 設定モーダル */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; width: 85%; max-width: 340px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .modal-content h3 { margin-top: 0; font-size: 15px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+    .modal-content label { display: block; font-size: 11px; font-weight: bold; margin-top: 12px; color: #4a5568; }
+    .modal-content input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -97,12 +99,15 @@
 
   <div class="header-wrapper">
     <div class="header">
-      <button class="header-btn" onclick="forceReload(this)"><i class="fas fa-sync-alt"></i></button>
-      <div>
+      <div class="header-left">
+        <button class="header-btn" onclick="openConfig()"><i class="fas fa-cog"></i></button>
+        <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
+      </div>
+      <div style="flex: 1;">
         <h1>SearchHub Mobile</h1>
         <div class="last-update" id="lastUpdate">読込中...</div>
       </div>
-      <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
+      <button class="header-btn" onclick="forceReload(this)"><i class="fas fa-sync-alt"></i></button>
     </div>
   </div>
 
@@ -152,6 +157,31 @@
     <div id="site-trefac" class="tab-content"></div>
   </div>
 
+  <div id="configModal" class="modal">
+    <div class="modal-content">
+      <h3>⚙️ アプリ基本設定</h3>
+      
+      <label>Keepa APIキー</label>
+      <input type="text" id="cfgKeepa" placeholder="あなたのKeepaAPIキー">
+      
+      <label>販売管理シートのURL</label>
+      <input type="url" id="cfgSsUrl" placeholder="https://docs.google.com/spreadsheets/...">
+      
+      <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
+      
+      <label>S(スナイパー)側 GAS URL</label>
+      <input type="url" id="cfgSniperUrl" placeholder="https://script.google.com/macros/.../exec">
+      
+      <label>10サイト側 GAS URL</label>
+      <input type="url" id="cfg10SiteUrl" placeholder="https://script.google.com/macros/.../exec">
+      
+      <div class="modal-actions">
+        <button style="background:#e2e8f0; color:#4a5568;" onclick="closeConfig()">閉じる</button>
+        <button style="background:#1a365d; color:white;" onclick="saveConfig()">設定を保存</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const AppStorage = {
       get: function(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } },
@@ -159,19 +189,10 @@
     };
 
     const siteKeyMap = {
-      'site-s-mercari': 'Sメルカリ',
-      'site-s-paypay': 'Sヤフフリ',
-      'site-s-offmall': 'Sオフモ',
-      'site-mercari': 'メルカリ',
-      'site-paypay': 'ヤフーフリマ',
-      'site-yahoo': 'ヤフオク',
-      'site-offmall': 'オフモール',
-      'site-2nd': 'セカストオンライン',
-      'site-rakuma': 'ラクマ',
-      'site-surugaya': '駿河屋',
-      'site-yshopping': 'ヤフショ',
-      'site-aupay': 'au PAY',
-      'site-trefac': 'トレファク'
+      'site-s-mercari': 'Sメルカリ', 'site-s-paypay': 'Sヤフフリ', 'site-s-offmall': 'Sオフモ',
+      'site-mercari': 'メルカリ', 'site-paypay': 'ヤフーフリマ', 'site-yahoo': 'ヤフオク',
+      'site-offmall': 'オフモール', 'site-2nd': 'セカストオンライン', 'site-rakuma': 'ラクマ',
+      'site-surugaya': '駿河屋', 'site-yshopping': 'ヤフショ', 'site-aupay': 'au PAY', 'site-trefac': 'トレファク'
     };
 
     const tabOrder = [
@@ -179,18 +200,31 @@
       'site-mercari', 'site-paypay', 'site-yahoo', 'site-offmall', 'site-2nd',
       'site-rakuma', 'site-surugaya', 'site-yshopping', 'site-aupay', 'site-trefac'
     ];
-    
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let currentSearchTitle = ""; 
 
     let globalViewedLinks = [];
     let globalHistoryData = {};
     let globalHistoryDay = "";
 
-    let globalSerial = "";
-    let globalKeepa = "";
-    let globalSsUrl = "";
+    function openConfig() {
+      document.getElementById("cfgKeepa").value = AppStorage.get("sh_keepa", "");
+      document.getElementById("cfgSsUrl").value = AppStorage.get("sh_ssurl", "");
+      document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", "");
+      document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
+      document.getElementById("configModal").style.display = "flex";
+    }
+
+    function closeConfig() {
+      document.getElementById("configModal").style.display = "none";
+    }
+
+    function saveConfig() {
+      AppStorage.set("sh_keepa", document.getElementById("cfgKeepa").value.trim());
+      AppStorage.set("sh_ssurl", document.getElementById("cfgSsUrl").value.trim());
+      AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim());
+      AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
+      closeConfig();
+      syncPatrolData(); 
+    }
 
     function markAsRead(element) {
       const card = element.closest('.card');
@@ -200,9 +234,7 @@
       if (url) {
         if (!globalViewedLinks.includes(url)) {
           globalViewedLinks.push(url);
-          const jsonStr = JSON.stringify(globalViewedLinks);
-          AppStorage.set("sh_viewed_links", jsonStr);
-          google.script.run.saveMobileState(jsonStr, null);
+          AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
         }
       }
     }
@@ -210,75 +242,43 @@
     function forceReload(btn) {
       btn.style.transform = "rotate(360deg)";
       setTimeout(() => btn.style.transform = "rotate(0deg)", 500);
-      document.getElementById("lastUpdate").innerText = "再読み込み中...";
       syncPatrolData(); 
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-      document.getElementById("lastUpdate").innerText = "サーバーと同期中...";
-      const sBtn = document.getElementById("searchBtn");
-      if (sBtn) sBtn.disabled = true;
-
-      if(typeof google === 'undefined') {
-         setTimeout(() => {
-           const loader = document.getElementById("loader");
-           if(loader) { loader.style.opacity = "0"; setTimeout(()=>loader.style.display="none", 500); }
-         }, 1000);
-         return;
-      }
-
-      google.script.run
-        .withSuccessHandler(function(serverState) {
-           try { globalViewedLinks = JSON.parse(serverState.viewed || "[]"); } catch(e) { globalViewedLinks = []; }
-           try { globalHistoryData = JSON.parse(serverState.history || "{}"); } catch(e) { globalHistoryData = {}; }
-           
-           const now = new Date();
-           globalHistoryDay = new Date(now.getTime() - 4 * 60 * 60 * 1000).toDateString();
-
-           AppStorage.set("sh_viewed_links", serverState.viewed);
-           AppStorage.set("sh_history_data", serverState.history);
-           loadGASConfig(); 
-        })
-        .withFailureHandler(function() {
-           loadGASConfig(); 
-        })
-        .getMobileState();
-    });
-
-    function loadGASConfig() {
-      google.script.run
-        .withSuccessHandler(function(config) {
-          if (config) {
-            globalSerial = config.serial || "";
-            globalKeepa = config.keepa || "";
-            globalSsUrl = config.ssUrl || "";
-          }
-          const sBtn = document.getElementById("searchBtn");
-          if (sBtn) sBtn.disabled = false;
-          
-          syncPatrolData(); 
-        })
-        .withFailureHandler(function(err) {
-          syncPatrolData();
-        })
-        .getUserProperties();
+      try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
+      try { globalHistoryData = JSON.parse(AppStorage.get("sh_history_data", "{}")); } catch(e) { globalHistoryData = {}; }
+      
+      const now = new Date();
+      globalHistoryDay = new Date(now.getTime() - 4 * 60 * 60 * 1000).toDateString();
       
       setupSwipe();
-    }
+      
+      const urlSniper = AppStorage.get("sh_sniper_url", "");
+      const url10 = AppStorage.get("sh_tensite_url", "");
+      
+      if(!urlSniper && !url10) {
+        setTimeout(() => {
+          const loader = document.getElementById("loader");
+          if(loader) { loader.style.opacity = "0"; setTimeout(()=>loader.style.display="none", 500); }
+          document.getElementById("lastUpdate").innerText = "設定未完了";
+          openConfig(); 
+        }, 1500);
+      } else {
+        syncPatrolData();
+      }
+    });
 
     function setupSwipe() {
+      let touchStartX = 0; let touchStartY = 0;
       const contentArea = document.querySelector('.content');
       contentArea.addEventListener('touchstart', function(e) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
       }, {passive: true});
 
       contentArea.addEventListener('touchend', function(e) {
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
-
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        const diffY = e.changedTouches[0].clientY - touchStartY;
         if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
           const activeContent = document.querySelector('.tab-content.active');
           if (!activeContent) return;
@@ -298,138 +298,138 @@
       }
     }
 
-    function syncPatrolData() {
-      document.getElementById("lastUpdate").innerText = "新着データ取得中...";
+    async function syncPatrolData() {
+      document.getElementById("lastUpdate").innerText = "データ同期中...";
+      
+      const urlSniper = AppStorage.get("sh_sniper_url", "");
+      const url10 = AppStorage.get("sh_tensite_url", "");
 
-      google.script.run
-        .withSuccessHandler(function(data) {
-          const loader = document.getElementById("loader");
-          if (loader && loader.style.display !== "none") {
-            loader.style.opacity = "0";
-            setTimeout(() => { loader.style.display = "none"; }, 500);
-          }
+      if(!urlSniper && !url10) return;
 
-          if (data.error) {
-            document.getElementById("lastUpdate").innerText = "認証エラー";
-            alert(data.message);
-            return;
-          }
-          
-          document.getElementById("lastUpdate").innerText = "最終更新: " + data.lastUpdate;
-          
-          const now = new Date();
-          const currentDayKey = new Date(now.getTime() - 4 * 60 * 60 * 1000).toDateString();
-          if (globalHistoryDay && globalHistoryDay !== currentDayKey) {
-            globalHistoryData = {};
-            globalViewedLinks = [];
-            globalHistoryDay = currentDayKey;
-            google.script.run.saveMobileState("[]", "{}");
-          }
-          
-          let dailyHistory = globalHistoryData;
-          let viewedLinks = globalViewedLinks;
-          
-          for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
-            const container = document.getElementById(divId);
-            const currentItems = data.sites[gasSiteName] || [];
+      try {
+        const fetchPromises = [];
+        if (urlSniper) fetchPromises.push(fetch(urlSniper + "?command=mobileData").then(r => r.json()).catch(() => null));
+        else fetchPromises.push(Promise.resolve(null));
 
-            if (!dailyHistory[gasSiteName]) {
-              dailyHistory[gasSiteName] = [];
-            }
+        if (url10) fetchPromises.push(fetch(url10 + "?command=mobileData").then(r => r.json()).catch(() => null));
+        else fetchPromises.push(Promise.resolve(null));
 
-           for (let i = currentItems.length - 1; i >= 0; i--) {
-             const newItem = currentItems[i];
-             let isNewlyUpdated = false; 
-             
-             const existingIndex = dailyHistory[gasSiteName].findIndex(h => h.url === newItem.url);
-             
-             if (existingIndex !== -1) {
-               const oldItem = dailyHistory[gasSiteName][existingIndex];
-               if (oldItem.status !== newItem.status || oldItem.price !== newItem.price) {
-                 isNewlyUpdated = true; 
-               }
-               dailyHistory[gasSiteName].splice(existingIndex, 1); 
-             } else {
-               isNewlyUpdated = true;
-             }
-             
-             dailyHistory[gasSiteName].unshift(newItem); 
+        const [resSniper, res10] = await Promise.all(fetchPromises);
 
-             if (isNewlyUpdated && newItem.status.includes("あり") && !newItem.status.includes("変化なし")) {
-               const viewedIdx = viewedLinks.indexOf(newItem.url);
-               if (viewedIdx !== -1) {
-                 viewedLinks.splice(viewedIdx, 1); 
-               }
-             }
-           }
+        const loader = document.getElementById("loader");
+        if (loader && loader.style.display !== "none") {
+          loader.style.opacity = "0";
+          setTimeout(() => { loader.style.display = "none"; }, 500);
+        }
 
-            const siteHistory = dailyHistory[gasSiteName];
-            container.innerHTML = "";
+        let mergedSites = {};
+        if (resSniper && !resSniper.error && resSniper.sites) Object.assign(mergedSites, resSniper.sites);
+        if (res10 && !res10.error && res10.sites) Object.assign(mergedSites, res10.sites);
+
+        document.getElementById("lastUpdate").innerText = "最終更新: " + Utilities_formatDate(new Date());
+
+        const now = new Date();
+        const currentDayKey = new Date(now.getTime() - 4 * 60 * 60 * 1000).toDateString();
+        if (globalHistoryDay && globalHistoryDay !== currentDayKey) {
+          globalHistoryData = {};
+          globalViewedLinks = [];
+          globalHistoryDay = currentDayKey;
+        }
+
+        let dailyHistory = globalHistoryData;
+        let viewedLinks = globalViewedLinks;
+
+        for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
+          const container = document.getElementById(divId);
+          const currentItems = mergedSites[gasSiteName] || [];
+
+          if (!dailyHistory[gasSiteName]) dailyHistory[gasSiteName] = [];
+
+          for (let i = currentItems.length - 1; i >= 0; i--) {
+            const newItem = currentItems[i];
+            let isNewlyUpdated = false; 
             
-            if (siteHistory.length === 0) {
-              container.innerHTML = '<div class="no-data">「' + gasSiteName + '」に現在、新着・利益商品は見つかっていません。</div>';
+            const existingIndex = dailyHistory[gasSiteName].findIndex(h => h.url === newItem.url);
+            
+            if (existingIndex !== -1) {
+              const oldItem = dailyHistory[gasSiteName][existingIndex];
+              if (oldItem.status !== newItem.status || oldItem.price !== newItem.price) {
+                isNewlyUpdated = true; 
+              }
+              dailyHistory[gasSiteName].splice(existingIndex, 1); 
             } else {
-              siteHistory.forEach(function(item) {
-                const card = document.createElement("div");
-                card.className = "card";
-                
-                if (viewedLinks.includes(item.url)) {
-                  card.className = "card read-card";
-                }
-                
-                let htmlStr = '<div class="item-title">' +
-                  '<a href="' + item.url + '" target="_blank" data-url="' + item.url + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a>' +
-                  '</div>' +
-                  '<div class="item-meta">' +
-                  '<span class="status-tag">' + escapeHtml(item.status) + '</span>' +
-                  '<span class="price-tag">' + escapeHtml(item.price) + '</span>' +
-                  '</div>';
-                
-                if (item.asin && item.asin !== "undefined") {
-                  htmlStr += '<div style="margin-top:10px; border-top:1px dashed #e2e8f0; padding-top:10px;">' +
-                    '<button class="auto-asin-btn" data-url="' + item.url + '" onclick="markAsRead(this); jumpToAmazonResearch(\'' + escapeHtml(item.asin) + '\', \'' + escapeHtml(item.title) + '\')">' +
-                    '<span style="font-size:14px;">📦</span> ASIN: ' + escapeHtml(item.asin) + ' で一発解析' +
-                    '</button>' +
-                    '</div>';
-                }
-                card.innerHTML = htmlStr;
-                container.appendChild(card);
-              });
+              isNewlyUpdated = true;
+            }
+            
+            dailyHistory[gasSiteName].unshift(newItem); 
+
+            if (isNewlyUpdated && newItem.status.includes("あり") && !newItem.status.includes("変化なし")) {
+              const viewedIdx = viewedLinks.indexOf(newItem.url);
+              if (viewedIdx !== -1) viewedLinks.splice(viewedIdx, 1); 
             }
           }
+
+          const siteHistory = dailyHistory[gasSiteName];
+          container.innerHTML = "";
           
-          const historyJsonStr = JSON.stringify(dailyHistory);
-          const viewedJsonStr = JSON.stringify(viewedLinks);
-          AppStorage.set("sh_history_data", historyJsonStr);
-          AppStorage.set("sh_viewed_links", viewedJsonStr);
-          google.script.run.saveMobileState(viewedJsonStr, historyJsonStr);
-          
-        })
-        .withFailureHandler(function(error) {
-          const loader = document.getElementById("loader");
-          if (loader && loader.style.display !== "none") {
-            loader.style.opacity = "0";
-            setTimeout(() => { loader.style.display = "none"; }, 500);
+          if (siteHistory.length === 0) {
+            container.innerHTML = '<div class="no-data">「' + gasSiteName + '」に現在、新着・利益商品は見つかっていません。</div>';
+          } else {
+            siteHistory.forEach(function(item) {
+              const card = document.createElement("div");
+              card.className = "card";
+              if (viewedLinks.includes(item.url)) card.className = "card read-card";
+              
+              let htmlStr = '<div class="item-title">' +
+                '<a href="' + item.url + '" target="_blank" data-url="' + item.url + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a>' +
+                '</div>' +
+                '<div class="item-meta">' +
+                '<span class="status-tag">' + escapeHtml(item.status) + '</span>' +
+                '<span class="price-tag">' + escapeHtml(item.price) + '</span>' +
+                '</div>';
+              
+              if (item.asin && item.asin !== "undefined") {
+                htmlStr += '<div style="margin-top:10px; border-top:1px dashed #e2e8f0; padding-top:10px;">' +
+                  '<button class="auto-asin-btn" data-url="' + item.url + '" onclick="markAsRead(this); jumpToAmazonResearch(\'' + escapeHtml(item.asin) + '\', \'' + escapeHtml(item.title) + '\')">' +
+                  '<span style="font-size:14px;">📦</span> ASIN: ' + escapeHtml(item.asin) + ' で一発解析' +
+                  '</button></div>';
+              }
+              card.innerHTML = htmlStr;
+              container.appendChild(card);
+            });
           }
-          document.getElementById("lastUpdate").innerText = "通信失敗";
-        })
-        .getMobileData();
+        }
+        
+        AppStorage.set("sh_history_data", JSON.stringify(dailyHistory));
+        AppStorage.set("sh_viewed_links", JSON.stringify(viewedLinks));
+
+      } catch(err) {
+        document.getElementById("lastUpdate").innerText = "通信失敗";
+        const loader = document.getElementById("loader");
+        if(loader) { loader.style.opacity = "0"; setTimeout(()=>loader.style.display="none", 500); }
+      }
+    }
+
+    function Utilities_formatDate(date) {
+      const y = date.getFullYear(); const m = ('0' + (date.getMonth() + 1)).slice(-2);
+      const d = ('0' + date.getDate()).slice(-2); const h = ('0' + date.getHours()).slice(-2);
+      const min = ('0' + date.getMinutes()).slice(-2);
+      return `${y}/${m}/${d} ${h}:${min}`;
     }
 
     function switchTab(targetId, btn) {
-      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
-      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(targetId).classList.add('active');
       btn.classList.add('active');
     }
 
     function jumpToAmazonResearch(asin, title) {
-      currentSearchTitle = title; 
       document.getElementById("amazonKw").value = asin;
       const btns = document.querySelectorAll('.tab-btn');
       if (btns[0]) switchTab('amazon-tab', btns[0]);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      runAmazonResearch();
+      runAmazonResearch(title);
     }
 
     function copyAsin(asin) {
@@ -440,32 +440,24 @@
              icon.className = "fas fa-check text-green-500 text-[12px] ml-1";
              setTimeout(() => { icon.className = "far fa-copy text-gray-400 text-[12px] ml-1"; }, 1500);
           }
-        }).catch(err => {
-          console.error('コピー失敗:', err);
         });
       }
     }
 
     function searchAmazonKeyword() {
       let modelText = document.getElementById('itemModelText') ? document.getElementById('itemModelText').innerText.trim() : '';
-      if (!modelText || modelText === '-') {
-        modelText = document.getElementById('amazonKw').value.trim();
-      }
+      if (!modelText || modelText === '-') modelText = document.getElementById('amazonKw').value.trim();
       if (!modelText) return alert("検索するキーワードがありません。");
       window.open(`https://www.google.com/search?q=${encodeURIComponent(modelText + ' amazon')}`, '_blank');
     }
 
-    async function runAmazonResearch() {
+    async function runAmazonResearch(fallbackTitle) {
       const kw = document.getElementById("amazonKw").value.trim();
       const resView = document.getElementById("amazonResult");
+      const apiKey = AppStorage.get("sh_keepa", "");
 
-      let apiKey = globalKeepa;
-      if (!apiKey) apiKey = localStorage.getItem('sh_free_keepa_key'); 
-
-      if (!kw) { alert("キーワードかASINを入力してな！"); return; }
-      if (!apiKey) { alert("PCの親機(GAS)からKeepaAPIキーを設定してな！"); return; }
-
-      if (!/^[A-Z0-9]{10}$/i.test(kw)) { currentSearchTitle = kw; }
+      if (!kw) return alert("キーワードかASINを入力してな！");
+      if (!apiKey) { openConfig(); return alert("⚙️設定からKeepaAPIキーを入力してな！"); }
 
       resView.innerHTML = '<div class="loading-spinner">⌛ Keepa APIと高速通信・解析中...</div>';
 
@@ -485,22 +477,22 @@
         const prodJson = await prodRes.json();
         const p = prodJson.products[0];
         
-        const productTitle = p.title || '不明';
+        const productTitle = p.title || fallbackTitle || '不明';
         const modelNum = p.model || '不明';
 
         let imgRaw = '';
         if (p.images && p.images.length > 0) {
           const firstImg = p.images[0];
           imgRaw = (typeof firstImg === 'object') ? (firstImg.l || firstImg.m || firstImg.s) : firstImg;
-        } else if (p.imagesCSV) { imgRaw = p.imagesCSV.split(',')[0]; }
+        } else if (p.imagesCSV) imgRaw = p.imagesCSV.split(',')[0];
         let imageUrl = imgRaw ? (imgRaw.startsWith('http') ? imgRaw : 'https://images-na.ssl-images-amazon.com/images/I/' + imgRaw) : '';
 
         const avgUsed = p.stats.avg90 && p.stats.avg90[2] !== -1 ? p.stats.avg90[2] : 0;
         const minUsed = p.stats.current && p.stats.current[2] !== -1 ? p.stats.current[2] : 0;
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
-
         const drops = p.stats.salesRankDrops90 || 0;
         const score = Math.floor(drops / 3) * 2;
+        
         let rank = 'E', rColor = '#808080';
         if (score >= 100) { rank = 'SR'; rColor = '#ff4500'; }
         else if (score >= 50) { rank = 'S'; rColor = '#ff8c00'; }
@@ -511,9 +503,7 @@
 
         const sizeTier = fbaFee > 650 ? "大型" : "標準";
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
-        if (imageUrl) {
-          imgHtml = '<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="' + imageUrl + '" style="width:100%; height:100%; object-fit:contain;"></div>';
-        }
+        if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
 
         resView.innerHTML = `
           <div class="card" style="display:flex; gap:12px; align-items:center; margin-bottom:16px;">
@@ -564,7 +554,7 @@
 
           <div class="grid-3">
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
-            <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none; cursor:pointer;">検索</button>
+            <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none;">検索</button>
             <a href="https://www.amazon.co.jp/dp/${asin}" target="_blank" class="btn-link" style="background:#f7941d;">Amazon</a>
           </div>
         `;
@@ -584,9 +574,7 @@
           document.getElementById('resProfit').style.color = profit >= 0 ? '#48bb78' : '#e53e3e';
         };
 
-        ['sPrice', 'bPrice', 'ePrice'].forEach(id => {
-          document.getElementById(id).addEventListener('input', updateCalc);
-        });
+        ['sPrice', 'bPrice', 'ePrice'].forEach(id => { document.getElementById(id).addEventListener('input', updateCalc); });
         updateCalc();
 
       } catch (err) {
@@ -594,50 +582,41 @@
       }
     }
 
-    function sendToManager(asin) {
+    async function sendToManager(asin) {
       const btn = document.getElementById("regBtn");
-      const bPrice = document.getElementById("bPrice").value;
-      const ePrice = document.getElementById("ePrice").value;
-      const sPrice = document.getElementById("sPrice").value;
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "");
+      if(!targetGasUrl) targetGasUrl = AppStorage.get("sh_sniper_url", "");
 
-      let ssUrl = globalSsUrl.trim();
-      if (!ssUrl) { 
-        alert("PCの親機(GAS)から販売管理シートのURLを設定してな！"); 
-        return; 
-      }
+      if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
 
-      btn.disabled = true;
-      btn.innerHTML = "⌛ 登録中...";
+      btn.disabled = true; btn.innerHTML = "⌛ 登録中...";
 
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res.success) {
-            btn.style.background = "#38a169";
-            btn.innerHTML = "✅ 登録完了！";
-          } else {
-            alert("登録失敗: " + res.message);
-            btn.disabled = false;
-            btn.innerHTML = "🚀 再試行";
-          }
-        })
-        .withFailureHandler(function(err) {
-          alert("通信エラー: " + err.message);
-          btn.disabled = false;
-        })
-        .registerToManager({ 
-          asin: asin,
-          buyPrice: bPrice,
-          shipping: ePrice,
-          sellPrice: sPrice
+      try {
+        const res = await fetch(targetGasUrl, {
+          method: 'POST',
+          body: JSON.stringify({
+            command: 'register',
+            ssUrl: ssUrl,
+            data: { asin: asin, buyPrice: document.getElementById("bPrice").value, shipping: document.getElementById("ePrice").value, sellPrice: document.getElementById("sPrice").value }
+          })
         });
+        const resJson = await res.json();
+        if (resJson.success) {
+          btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！";
+        } else {
+          alert("登録失敗: " + resJson.message);
+          btn.disabled = false; btn.innerHTML = "🚀 再試行";
+        }
+      } catch(err) {
+        alert("通信エラーが発生しました");
+        btn.disabled = false; btn.innerHTML = "🚀 再試行";
+      }
     }
 
     function openManager() {
-      let url = globalSsUrl.trim();
-      if (!url) { 
-        alert("PCの親機(GAS)から販売管理シートのURLを設定してな！"); 
-        return; 
-      }
+      const url = AppStorage.get("sh_ssurl", "");
+      if (!url) { openConfig(); return alert("⚙️設定から販売管理シートのURLを設定してな！"); }
       window.open(url, "_blank");
     }
 
