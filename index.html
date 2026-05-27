@@ -177,7 +177,7 @@
       
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
       
-      <button onclick="enablePushNotifications()" style="width:100%; background:#ff9900; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; margin-top:10px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🔔 スマホに通知を送る許可をする</button>
+      <button onclick="enablePushNotifications(this)" style="width:100%; background:#ff9900; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; margin-top:10px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🔔 スマホに通知を送る許可をする</button>
       
       <div class="modal-actions">
         <button style="background:#e2e8f0; color:#4a5568;" onclick="closeConfig()">閉じる</button>
@@ -654,19 +654,19 @@
     const app = initializeApp(firebaseConfig);
     const messaging = getMessaging(app);
 
-    window.enablePushNotifications = async function() {
+    window.enablePushNotifications = async function(btn) {
       try {
+        btn.innerText = "⌛ 通知設定を生成中や…ちょっと待ってな！";
+        btn.disabled = true;
+
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          alert("⌛ 通知設定を生成中や…ちょっと待ってな！");
           
-          // 🚨 ここがGitHub Pages用の超重要修正ポイント！
-          // デフォルトの場所じゃなく、今いる場所（./）のファイルを探すように強制する
           const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
 
           const currentToken = await getToken(messaging, { 
             vapidKey: "BJMWJMJx2CGiDNuLq7xixOKeBlN8Hd3vNvbx4QmK7mf1R3ccUCXuP0o-ZlsRurw7MhpiwWLZuvu57twS5jypqlU",
-            serviceWorkerRegistration: registration // 👈 見つけたファイルを渡す
+            serviceWorkerRegistration: registration
           });
           
           if (currentToken) {
@@ -680,16 +680,27 @@
                 body: JSON.stringify({ command: 'saveToken', token: currentToken })
               });
               alert("✅ 通知設定が完了したで！スナイパーGASと連携したわ！");
+              btn.innerText = "✅ 通知設定完了";
             } else {
               alert("⚠️ デバイストークンは取得できたけど、設定画面で『S(スナイパー)側 GAS URL』を先に入れてからもう一回押してな！");
+              btn.innerText = "🔔 スマホに通知を送る許可をする";
+              btn.disabled = false;
             }
+          } else {
+            alert("❌ トークンが空で返ってきたわ。");
+            btn.innerText = "🔔 スマホに通知を送る許可をする";
+            btn.disabled = false;
           }
         } else {
           alert("通知がブロックされてるみたいや。スマホの設定（Safari/Chrome）から許可してな。");
+          btn.innerText = "🔔 スマホに通知を送る許可をする";
+          btn.disabled = false;
         }
       } catch (err) {
-        console.error('An error occurred while retrieving token. ', err);
-        alert("エラーが発生したわ。原因: " + err.message);
+        console.error('Error:', err);
+        alert("【エラー詳細】\n" + err.name + "\n" + err.message);
+        btn.innerText = "🔔 スマホに通知を送る許可をする";
+        btn.disabled = false;
       }
     }
 
