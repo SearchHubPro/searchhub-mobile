@@ -588,7 +588,7 @@
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
 
         resView.innerHTML = `
-          <div class="card" style="display:flex; gap:12px; align-items:center; margin-bottom:16px;">
+          <div class="card" style="display:flex; gap:12px; align-items:flex-start; margin-bottom:16px;">
             ${imgHtml}
             <div style="flex:1; min-width:0;">
               <div style="font-size:11px; color:#555; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">型番: <span id="itemModelText" style="color:#000;">${modelNum !== '不明' ? modelNum : productTitle.substring(0,30)+'...'}</span></div>
@@ -596,21 +596,31 @@
                 <span style="font-size:11px; font-weight:bold; color:#666;">ASIN:</span>
                 <span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${asin}</span>
                 <i class="far fa-copy text-gray-400 text-[12px] ml-1" id="copyIcon"></i>
-                <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="margin-left:4px; background:#e53e3e; color:#fff; text-decoration:none; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; box-shadow:0 1px 2px rgba(0,0,0,0.1);">規制確認</a>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; gap:4px;"><span class="badge" style="border:1px solid ${rColor}; color:${rColor};">${rank}ランク</span><span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white;">${sizeTier}</span></div>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                <span class="badge" style="border:1px solid ${rColor}; color:${rColor};">${rank}ランク</span>
+                <span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white;">${sizeTier}</span>
+                <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="background:#e53e3e; color:#fff; text-decoration:none; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; box-shadow:0 1px 2px rgba(0,0,0,0.1);">規制確認</a>
               </div>
             </div>
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f0f4ff; border:1px solid #dbeafe; padding:6px; border-radius:8px; min-width: 45px;">
-              <span style="font-size:10px; color:#4a72b2; font-weight:bold;">中古出品</span>
-              <span style="font-size:16px; font-weight:900; color:#2c4c8f;">${usedOffers}</span>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f0f4ff; border:1px solid #dbeafe; padding:6px 8px; border-radius:8px; min-width: 45px; flex-shrink:0;">
+              <span style="font-size:10px; color:#4a72b2; font-weight:bold; margin-bottom:2px;">中古出品</span>
+              <span style="font-size:18px; font-weight:900; color:#2c4c8f;">${usedOffers}</span>
             </div>
           </div>
-          <div class="market-price-container" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
-            <div class="market-price-card average" style="padding:8px 4px;"><div class="price-label">平均(90)</div><div class="price-val" style="font-size:14px;">¥${avgUsed > 0 ? avgUsed.toLocaleString() : '0'}</div></div>
-            <div class="market-price-card lowest" style="padding:8px 4px;"><div class="price-label">中古最安</div><div class="price-val" style="font-size:14px;">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div></div>
-            <div class="market-price-card lowest" style="padding:8px 4px; background:#f0fff4; border-color:#c6f6d5;"><div class="price-label" style="color:#2f855a;">カート</div><div class="price-val" style="font-size:14px; color:#276749;">${buyBoxUsed > 0 ? '¥'+buyBoxUsed.toLocaleString() : 'なし'}</div></div>
+          <div class="market-price-container" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px;">
+            <div class="market-price-card" style="background:#ebf8ff; border:1px solid #bee3f8; padding:10px 4px; border-radius:8px; text-align:center;">
+              <div style="font-size:11px; color:#2b6cb0; font-weight:bold; margin-bottom:2px;">平均(90)</div>
+              <div style="font-size:14px; font-weight:bold; color:#2c5282;">¥${avgUsed > 0 ? avgUsed.toLocaleString() : '0'}</div>
+            </div>
+            <div class="market-price-card" style="background:#fff5f5; border:1px solid #fed7d7; padding:10px 4px; border-radius:8px; text-align:center;">
+              <div style="font-size:11px; color:#c53030; font-weight:bold; margin-bottom:2px;">中古最安</div>
+              <div style="font-size:14px; font-weight:bold; color:#9b2c2c;">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div>
+            </div>
+            <div class="market-price-card" style="background:#f0fff4; border:1px solid #c6f6d5; padding:10px 4px; border-radius:8px; text-align:center;">
+              <div style="font-size:11px; color:#2f855a; font-weight:bold; margin-bottom:2px;">カート</div>
+              <div style="font-size:14px; font-weight:bold; color:#22543d;">${buyBoxUsed > 0 ? '¥'+buyBoxUsed.toLocaleString() : 'なし'}</div>
+            </div>
           </div>
           <div class="calc-box">
             <div class="calc-row"><span>仕入れ値</span><input type="number" id="bPrice" placeholder="0" onfocus="this.placeholder=''" onblur="this.placeholder='0'"></div>
