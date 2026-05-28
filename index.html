@@ -252,14 +252,19 @@
       }
     }
 
-    // 👆 タップされたら既読にして赤丸を消す
+    // 👆 タップされたら既読にして赤丸を消す（URL＋時間キー版）
     function markAsRead(element) {
       const card = element.closest('.card');
-      if (card) { card.classList.add('read-card'); }
+      if (card) { 
+        card.classList.add('read-card'); 
+        card.classList.remove('is-new-item'); // 🔴 既読にしたらバッジ集計からも即外す
+      }
       
-      const url = element.getAttribute('data-url');
-      if (url && !globalViewedLinks.includes(url)) {
-        globalViewedLinks.push(url);
+      const key = element.getAttribute('data-key');
+      if (key && !globalViewedLinks.includes(key)) {
+        globalViewedLinks.push(key);
+        // メモリ爆発防止（最新500件だけ記憶）
+        if (globalViewedLinks.length > 500) globalViewedLinks.shift();
         AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
       }
       recalcBadges(); // 即座に赤丸を計算し直す
@@ -288,6 +293,16 @@
           syncPatrolData();
         }, 800);
       }
+      
+      // 🚀 バックグラウンドからアプリに戻ってきた瞬間に、自動で最新データを取得する魔法！
+      document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === 'visible') {
+          if (urlSniper || url10) {
+             document.getElementById("lastUpdate").innerText = "自動更新中...";
+             syncPatrolData();
+          }
+        }
+      });
     });
 
     async function syncPatrolData() {
@@ -329,7 +344,6 @@
         document.getElementById("lastUpdate").innerText = "最終更新: " + Utilities_formatDate(new Date());
 
         // 🚀 完全同期（True Sync）ロジック
-        // GAS側から「空っぽ」が送られてきたら、スマホの記憶も強制的に空っぽで上書きする！
         globalHistoryData = mergedSites;
 
         for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
@@ -342,15 +356,17 @@
             container.innerHTML = '<div class="no-data">「' + gasSiteName + '」に現在、新着・利益商品は見つかっていません。</div>';
           } else {
             currentItems.forEach(function(item) {
+              // 🔴 「URL + ステータス(日付入り)」で、その検知だけの絶対カブらないIDを作る
+              const uniqueKey = item.url + "_" + item.status; 
               const isNew = item.status.includes("あり") && !item.status.includes("変化なし");
-              const isRead = globalViewedLinks.includes(item.url);
+              const isRead = globalViewedLinks.includes(uniqueKey); // 🔴 URLではなくキーで既読判定
               
               // 🔴 新着かつ未読なら "is-new-item" クラスを付けてバッジ集計の対象にする
               const card = document.createElement("div");
-              card.className = "card" + (isRead ? " read-card" : "") + (isNew ? " is-new-item" : "");
+              card.className = "card" + (isRead ? " read-card" : "") + (isNew && !isRead ? " is-new-item" : "");
               
               let htmlStr = '<div class="item-title">' +
-                '<a href="' + item.url + '" target="_blank" data-url="' + item.url + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a>' +
+                '<a href="' + item.url + '" target="_blank" data-key="' + uniqueKey + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a>' +
                 '</div>' +
                 '<div class="item-meta">' +
                 '<span class="status-tag">' + escapeHtml(item.status) + '</span>' +
@@ -359,7 +375,7 @@
               
               if (item.asin && item.asin !== "undefined") {
                 htmlStr += '<div style="margin-top:10px; border-top:1px dashed #e2e8f0; padding-top:10px;">' +
-                  '<button class="auto-asin-btn" data-url="' + item.url + '" onclick="markAsRead(this); jumpToAmazonResearch(\'' + escapeHtml(item.asin) + '\', \'' + escapeHtml(item.title) + '\')">' +
+                  '<button class="auto-asin-btn" data-key="' + uniqueKey + '" onclick="markAsRead(this); jumpToAmazonResearch(\'' + escapeHtml(item.asin) + '\', \'' + escapeHtml(item.title) + '\')">' +
                   '<span style="font-size:14px;">📦</span> ASIN: ' + escapeHtml(item.asin) + ' で一発解析' +
                   '</button></div>';
               }
@@ -469,7 +485,7 @@
       window.open(url, "_blank");
     }
 
-    // --- Amazon Keepa 関連関数 (省略せずそのまま維持) ---
+    // --- Amazon Keepa 関連関数 ---
     function jumpToAmazonResearch(asin, title) {
       document.getElementById("amazonKw").value = asin;
       const btns = document.querySelectorAll('.tab-btn');
