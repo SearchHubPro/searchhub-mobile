@@ -75,9 +75,16 @@
     .no-data { text-align: center; color: #a0aec0; padding: 30px 10px; font-size: 12px; }
     .loading-spinner { text-align: center; padding: 40px; font-size: 13px; color: #2b6cb0; font-weight: bold; }
 
+    /* 検索窓＆ページネーション UI */
     .search-box { display: flex; gap: 6px; margin-bottom: 12px; }
     .search-box input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; outline: none; background: white; }
     .search-box button { background: #07A27B; color: #fff; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+    .search-bar-only { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; outline: none; background: white; margin-bottom: 12px; box-sizing: border-box; }
+    
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px; padding-bottom: 20px; }
+    .page-btn { background: #e2e8f0; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; color: #4a5568; cursor: pointer; }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-info { font-size: 12px; font-weight: bold; color: #718096; }
 
     .market-price-container { display: flex; gap: 8px; margin-bottom: 12px; }
     .market-price-card { flex: 1; padding: 10px 12px; border-radius: 8px; text-align: center; }
@@ -117,10 +124,6 @@
     .modal-content input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
     .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
     .modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
-
-    /* 建設中画面 */
-    .coming-soon { text-align: center; color: #a0aec0; padding: 60px 20px; font-weight: bold; }
-    .coming-soon i { font-size: 40px; color: #cbd5e0; margin-bottom: 16px; }
   </style>
 </head>
 <body>
@@ -233,14 +236,54 @@
         <span style="font-size:12px; font-weight:bold; color:#4a5568;" id="inventoryCount">在庫を読み込み中...</span>
         <button onclick="loadInventoryPrice()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold;"><i class="fas fa-sync-alt"></i> 更新</button>
       </div>
+      <input type="text" id="price-search-kw" class="search-bar-only" placeholder="ASINや商品名で一発検索..." oninput="invCurrentPage=1; renderInventoryList();">
+      
       <div id="priceResult">
         <div class="loading-spinner">⌛ マネージャーシートから現役の在庫リストを抽出中...</div>
+      </div>
+      
+      <div id="price-pagination" class="pagination" style="display:none;">
+        <button class="page-btn" id="price-btn-prev" onclick="invCurrentPage--; renderInventoryList();">◀ 戻る</button>
+        <span class="page-info" id="price-page-info">1 / 1</span>
+        <button class="page-btn" id="price-btn-next" onclick="invCurrentPage++; renderInventoryList();">次へ ▶</button>
       </div>
     </div>
   </div>
 
   <div id="view-monthly" class="view">
-    <div class="content"><div class="coming-soon"><i class="fas fa-tools"></i><br>月別仕入・販売情報は<br>次回アップデートで実装予定！</div></div>
+    <div class="tabs-container">
+      <div class="tabs" id="monthly-tabs">
+        <button class="tab-btn active" id="btn-monthly-purchase" onclick="switchMonthlyTab('monthly-purchase', this)">📦 仕入情報</button>
+        <button class="tab-btn" id="btn-monthly-sales" onclick="switchMonthlyTab('monthly-sales', this)">💰 販売情報</button>
+      </div>
+    </div>
+    
+    <div class="content" id="content-monthly">
+      <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+        <select id="monthly-selector" onchange="renderMonthlyData()" style="padding:8px; border-radius:6px; border:1px solid #cbd5e0; font-weight:bold; font-size:14px; outline:none; background:#fff; color:#1a365d; min-width: 140px;">
+          <option>読込中...</option>
+        </select>
+        <button onclick="loadMonthlyData()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold;"><i class="fas fa-sync-alt"></i> 更新</button>
+      </div>
+      
+      <div id="monthly-summary" style="margin-bottom:16px;"></div>
+
+      <input type="text" id="monthly-search-kw" class="search-bar-only" placeholder="ASIN・商品名・注文番号で検索..." oninput="monthlyCurrentPage=1; renderMonthlyList();">
+
+      <div id="monthly-purchase" class="tab-content active">
+         <div id="monthly-purchase-list"></div>
+      </div>
+      
+      <div id="monthly-sales" class="tab-content">
+         <div id="monthly-sales-list"></div>
+      </div>
+
+      <div id="monthly-pagination" class="pagination" style="display:none;">
+        <button class="page-btn" id="monthly-btn-prev" onclick="monthlyCurrentPage--; renderMonthlyList();">◀ 戻る</button>
+        <span class="page-info" id="monthly-page-info">1 / 1</span>
+        <button class="page-btn" id="monthly-btn-next" onclick="monthlyCurrentPage++; renderMonthlyList();">次へ ▶</button>
+      </div>
+    </div>
   </div>
 
   <div id="configModal" class="modal">
@@ -279,10 +322,20 @@
 
     const sniperOrder = ['sniper-mercari', 'sniper-paypay', 'sniper-offmall'];
     const watcherOrder = ['watcher-mercari', 'watcher-paypay', 'watcher-yahoo', 'watcher-offmall', 'watcher-2nd', 'watcher-rakuma', 'watcher-surugaya', 'watcher-yshopping', 'watcher-aupay', 'watcher-trefac'];
+    const monthlyOrder = ['monthly-purchase', 'monthly-sales']; // 月別用の横スワイプ順序
 
     let currentActiveView = 'view-home';
     let globalViewedLinks = [];
     let globalHistoryData = {};
+    
+    // --- 💡 グローバル変数（検索＆ページネーション用） ---
+    let globalInventoryData = [];
+    let invCurrentPage = 1;
+    const ITEMS_PER_PAGE = 20;
+    
+    let globalMonthlyData = { purchase: [], sales: [] };
+    let monthlyCurrentPage = 1;
+    let currentMonthlyTab = 'monthly-purchase';
 
     function hideLoader() {
       const loader = document.getElementById("loader");
@@ -313,9 +366,14 @@
         else if(viewId === 'view-monthly') titleEl.innerText = '月別仕入・販売情報';
       }
 
-      // 📈 価格改定画面が開かれたら、自動で最新在庫を読みに行く
+      // 📈 画面を開いた時の自動読み込み
       if (viewId === 'view-price') {
-        loadInventoryPrice();
+        if (globalInventoryData.length === 0) loadInventoryPrice();
+        else renderInventoryList();
+      }
+      if (viewId === 'view-monthly') {
+        if (globalMonthlyData.purchase.length === 0 && globalMonthlyData.sales.length === 0) loadMonthlyData();
+        else renderMonthlyData();
       }
 
       window.scrollTo(0,0);
@@ -328,9 +386,7 @@
       for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
         const container = document.getElementById(divId);
         if(!container) continue;
-        
         const unreadCount = container.querySelectorAll('.card.is-new-item:not(.read-card)').length;
-        
         if (divId.startsWith('sniper-')) totalSniper += unreadCount;
         if (divId.startsWith('watcher-')) totalWatcher += unreadCount;
         
@@ -343,7 +399,6 @@
           }
         }
       }
-      
       const dashDotSniper = document.getElementById('dash-dot-sniper');
       const dashDotWatcher = document.getElementById('dash-dot-watcher');
       if (totalSniper > 0) dashDotSniper.classList.add('active'); else dashDotSniper.classList.remove('active');
@@ -358,10 +413,7 @@
 
     function markAsRead(element) {
       const card = element.closest('.card');
-      if (card) { 
-        card.classList.add('read-card'); 
-        card.classList.remove('is-new-item');
-      }
+      if (card) { card.classList.add('read-card'); card.classList.remove('is-new-item'); }
       const key = element.getAttribute('data-key');
       if (key && !globalViewedLinks.includes(key)) {
         globalViewedLinks.push(key);
@@ -382,28 +434,20 @@
       setTimeout(() => { hideLoader(); }, 8000);
 
       if(!urlSniper && !url10) {
-        setTimeout(() => {
-          hideLoader();
-          document.getElementById("lastUpdate").innerText = "設定未完了";
-          openConfig(); 
-        }, 1500);
+        setTimeout(() => { hideLoader(); document.getElementById("lastUpdate").innerText = "設定未完了"; openConfig(); }, 1500);
       } else {
         setTimeout(() => { syncPatrolData(); }, 800);
       }
       
       document.addEventListener("visibilitychange", function() {
         if (document.visibilityState === 'visible') {
-          if (urlSniper || url10) {
-             document.getElementById("lastUpdate").innerText = "自動更新中...";
-             syncPatrolData();
-          }
+          if (urlSniper || url10) { document.getElementById("lastUpdate").innerText = "自動更新中..."; syncPatrolData(); }
         }
       });
     });
 
     async function syncPatrolData() {
       document.getElementById("lastUpdate").innerText = "データ同期中...";
-      
       const urlSniper = AppStorage.get("sh_sniper_url", "");
       const url10 = AppStorage.get("sh_tensite_url", "");
       if(!urlSniper && !url10) return;
@@ -431,7 +475,6 @@
             updateDiscordBtnUI(resSniper.discordStatus);
           }
         }
-        
         if (res10 && !res10.error && res10.sites) Object.assign(mergedSites, res10.sites);
 
         document.getElementById("lastUpdate").innerText = "最終更新: " + Utilities_formatDate(new Date());
@@ -454,29 +497,21 @@
               const card = document.createElement("div");
               card.className = "card" + (isRead ? " read-card" : "") + (isNew && !isRead ? " is-new-item" : "");
               
-              let htmlStr = '<div class="item-title">' +
-                '<a href="' + item.url + '" target="_blank" data-key="' + uniqueKey + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a>' +
-                '</div>' +
-                '<div class="item-meta">' +
-                '<span class="status-tag">' + escapeHtml(item.status) + '</span>' +
-                '<span class="price-tag">' + escapeHtml(item.price) + '</span>' +
-                '</div>';
+              let htmlStr = '<div class="item-title"><a href="' + item.url + '" target="_blank" data-key="' + uniqueKey + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a></div>' +
+                '<div class="item-meta"><span class="status-tag">' + escapeHtml(item.status) + '</span><span class="price-tag">' + escapeHtml(item.price) + '</span></div>';
               
               if (item.asin && item.asin !== "undefined") {
                 htmlStr += '<div style="margin-top:10px; border-top:1px dashed #e2e8f0; padding-top:10px;">' +
                   '<button class="auto-asin-btn" data-key="' + uniqueKey + '" onclick="markAsRead(this); openView(\'view-amazon\'); jumpToAmazonResearch(\'' + escapeHtml(item.asin) + '\', \'' + escapeHtml(item.title) + '\')">' +
-                  '<span style="font-size:14px;">📦</span> ASIN: ' + escapeHtml(item.asin) + ' で一発解析' +
-                  '</button></div>';
+                  '<span style="font-size:14px;">📦</span> ASIN: ' + escapeHtml(item.asin) + ' で一発解析</button></div>';
               }
               card.innerHTML = htmlStr;
               container.appendChild(card);
             });
           }
         }
-        
         AppStorage.set("sh_history_data", JSON.stringify(globalHistoryData));
         recalcBadges(); 
-
       } catch(err) {
         document.getElementById("lastUpdate").innerText = "通信失敗";
         hideLoader();
@@ -526,22 +561,23 @@
 
     function setupSwipe() {
       let touchStartX = 0; let touchStartY = 0;
-      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher')];
+      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly')];
       
       areas.forEach(contentArea => {
         if(!contentArea) return;
         contentArea.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive: true});
         contentArea.addEventListener('touchend', function(e) {
-          if (currentActiveView !== 'view-sniper' && currentActiveView !== 'view-watcher') return;
+          if (currentActiveView !== 'view-sniper' && currentActiveView !== 'view-watcher' && currentActiveView !== 'view-monthly') return;
           
           const diffX = e.changedTouches[0].clientX - touchStartX;
           const diffY = e.changedTouches[0].clientY - touchStartY;
           if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
-            const order = currentActiveView === 'view-sniper' ? sniperOrder : watcherOrder;
-            const activeContent = document.querySelector(`#${currentActiveView} .tab-content.active`);
-            if (!activeContent) return;
+            let order, activeContentId;
+            if (currentActiveView === 'view-sniper') { order = sniperOrder; activeContentId = document.querySelector(`#view-sniper .tab-content.active`).id; }
+            else if (currentActiveView === 'view-watcher') { order = watcherOrder; activeContentId = document.querySelector(`#view-watcher .tab-content.active`).id; }
+            else if (currentActiveView === 'view-monthly') { order = monthlyOrder; activeContentId = currentMonthlyTab; }
             
-            let currentIndex = order.indexOf(activeContent.id);
+            let currentIndex = order.indexOf(activeContentId);
             if (diffX < 0 && currentIndex < order.length - 1) swipeToTab(order[currentIndex + 1], currentActiveView);
             else if (diffX > 0 && currentIndex > 0) swipeToTab(order[currentIndex - 1], currentActiveView);
           }
@@ -550,10 +586,15 @@
     }
 
     function swipeToTab(targetId, viewId) {
-      const btn = document.querySelector(`button[onclick*="'${targetId}'"]`);
-      if (btn) {
-        switchTab(targetId, btn, viewId);
-        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      if (viewId === 'view-monthly') {
+        const btn = document.getElementById("btn-" + targetId);
+        if (btn) switchMonthlyTab(targetId, btn);
+      } else {
+        const btn = document.querySelector(`button[onclick*="'${targetId}'"]`);
+        if (btn) {
+          switchTab(targetId, btn, viewId);
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
       }
     }
     function switchTab(targetId, btn, viewId) {
@@ -561,6 +602,17 @@
       document.querySelectorAll(`#${viewId} .tab-btn`).forEach(b => b.classList.remove('active'));
       document.getElementById(targetId).classList.add('active');
       btn.classList.add('active');
+    }
+
+    // --- 📊 月別情報のタブ切り替え専用関数 ---
+    function switchMonthlyTab(targetId, btn) {
+      document.querySelectorAll('#view-monthly .tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#view-monthly .tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+      btn.classList.add('active');
+      currentMonthlyTab = targetId;
+      monthlyCurrentPage = 1; // タブ変えたらページを1に戻す
+      renderMonthlyData();
     }
 
     function Utilities_formatDate(date) {
@@ -585,27 +637,15 @@
     async function searchHistory() {
       const asin = document.getElementById('historyAsin').value.trim();
       const resDiv = document.getElementById('historyResult');
-      
-      if(!asin) { 
-        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">ASINを入力してください</div>'; 
-        return; 
-      }
+      if(!asin) { resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">ASINを入力してください</div>'; return; }
       
       const ssUrl = AppStorage.get("sh_ssurl", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
-      
-      if (!ssUrl || !targetGasUrl) { 
-        openConfig(); 
-        return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); 
-      }
+      if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
       
       resDiv.innerHTML = '<div class="loading-spinner">⌛ 台帳からすべての実績を抽出中...</div>';
-      
       try {
-        const res = await fetch(targetGasUrl, { 
-          method: 'POST', 
-          body: JSON.stringify({ command: 'findPastData', ssUrl: ssUrl, asin: asin }) 
-        });
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'findPastData', ssUrl: ssUrl, asin: asin }) });
         const json = await res.json();
         
         if (!json.success || !json.data || json.data.length === 0) {
@@ -617,26 +657,13 @@
         json.data.reverse().forEach(function(r) {
           html += `
           <div class="card" style="border-left: 6px solid #34a853; margin-bottom: 12px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: #666; font-weight: bold;">仕入日</span>
-              <span style="font-size: 15px; font-weight: bold; color: #333;">${r.date}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: #666; font-weight: bold;">販売額</span>
-              <span style="font-size: 16px; font-weight: bold; color: #333;">${Number(r.price).toLocaleString()}円</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: #666; font-weight: bold;">仕入値</span>
-              <span style="font-size: 16px; font-weight: bold; color: #333;">${Number(r.siire).toLocaleString()}円</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding-top: 4px;">
-              <span style="font-size: 13px; color: #666; font-weight: bold;">今回の利益</span>
-              <span style="font-size: 22px; font-weight: 900; color: #d93025;">${Number(r.profit).toLocaleString()}円</span>
-            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;"><span style="font-size: 13px; color: #666; font-weight: bold;">仕入日</span><span style="font-size: 15px; font-weight: bold; color: #333;">${r.date}</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;"><span style="font-size: 13px; color: #666; font-weight: bold;">販売額</span><span style="font-size: 16px; font-weight: bold; color: #333;">${Number(r.price).toLocaleString()}円</span></div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;"><span style="font-size: 13px; color: #666; font-weight: bold;">仕入値</span><span style="font-size: 16px; font-weight: bold; color: #333;">${Number(r.siire).toLocaleString()}円</span></div>
+            <div style="display: flex; justify-content: space-between; padding-top: 4px;"><span style="font-size: 13px; color: #666; font-weight: bold;">今回の利益</span><span style="font-size: 22px; font-weight: 900; color: #d93025;">${Number(r.profit).toLocaleString()}円</span></div>
           </div>`;
         });
         resDiv.innerHTML = html;
-        
       } catch(err) {
         resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">❌ 通信エラーが発生しました</div>';
       }
@@ -715,10 +742,7 @@
                 <i class="far fa-copy text-gray-400 text-[12px] ml-1" id="copyIcon"></i>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; gap:4px;">
-                  <span class="badge" style="border:1px solid ${rColor}; color:${rColor};">${rank}ランク</span>
-                  <span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white;">${sizeTier}</span>
-                </div>
+                <div style="display:flex; gap:4px;"><span class="badge" style="border:1px solid ${rColor}; color:${rColor};">${rank}ランク</span><span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white;">${sizeTier}</span></div>
                 <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="background:#e53e3e; color:#fff; text-decoration:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold; box-shadow:0 1px 2px rgba(0,0,0,0.1);">規制確認</a>
               </div>
             </div>
@@ -743,8 +767,7 @@
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
             <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none;">検索</button>
             <a href="https://www.amazon.co.jp/dp/${asin}" target="_blank" class="btn-link" style="background:#f7941d;">Amazon</a>
-          </div>
-        `;
+          </div>`;
         const updateCalc = function() {
           const sPrice = parseInt(document.getElementById('sPrice').value) || 0;
           const bPrice = parseInt(document.getElementById('bPrice').value) || 0;
@@ -765,8 +788,7 @@
     async function sendToManager(asin) {
       const btn = document.getElementById("regBtn");
       const ssUrl = AppStorage.get("sh_ssurl", "");
-      let targetGasUrl = AppStorage.get("sh_tensite_url", "");
-      if(!targetGasUrl) targetGasUrl = AppStorage.get("sh_sniper_url", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
       if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
       btn.disabled = true; btn.innerHTML = "⌛ 登録中...";
       try {
@@ -777,142 +799,295 @@
       } catch(err) { alert("通信エラーが発生しました"); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
     }
 
-    // --- 📈 価格改定 在庫リスト ＆ リアルタイムシミュレーター機能 ---
-    
-    // 💡 入力された価格から手残り利益を瞬間計算する魔法の関数
+    // --- 📈 価格改定 (検索＆ページネーション対応) ---
     window.calcSimProfit = function(id, cost, fbaFee) {
       const priceInput = document.getElementById('sim_price_' + id);
       const profitSpan = document.getElementById('sim_profit_' + id);
       if(!priceInput || !profitSpan) return;
-      
       const price = Number(priceInput.value) || 0;
-      const comm = Math.floor(price * 0.10); // 販売手数料 10%
+      const comm = Math.floor(price * 0.10); 
       const profit = price - comm - fbaFee - cost;
       const margin = price > 0 ? Math.floor((profit / price) * 100) : 0;
-      
-      if (profit >= 0) {
-        profitSpan.style.color = '#07A27B';
-        profitSpan.innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
-      } else {
-        profitSpan.style.color = '#e53e3e';
-        profitSpan.innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
-      }
+      profitSpan.style.color = profit >= 0 ? '#07A27B' : '#e53e3e';
+      profitSpan.innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
     };
 
     async function loadInventoryPrice() {
       const resDiv = document.getElementById('priceResult');
       const countEl = document.getElementById('inventoryCount');
-      
       const ssUrl = AppStorage.get("sh_ssurl", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
-      
-      if (!ssUrl || !targetGasUrl) { 
-        openConfig(); 
-        resDiv.innerHTML = '<div class="card" style="text-align:center; padding:20px; color:#e53e3e; font-weight:bold;">⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！</div>';
-        return; 
-      }
+      if (!ssUrl || !targetGasUrl) { openConfig(); resDiv.innerHTML = '<div class="card" style="text-align:center; padding:20px; color:#e53e3e; font-weight:bold;">⚙️設定を完了させてな！</div>'; return; }
       
       resDiv.innerHTML = '<div class="loading-spinner">⌛ マネージャーシートから現役の在庫リストを抽出中...</div>';
       countEl.innerText = "同期中...";
       
       try {
-        const cacheBuster = "&t=" + new Date().getTime();
-        const res = await fetch(targetGasUrl, { 
-          method: 'POST', 
-          body: JSON.stringify({ command: 'getInventoryPrice', ssUrl: ssUrl }) 
-        });
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getInventoryPrice', ssUrl: ssUrl }) });
         const json = await res.json();
-        
         if (!json.success || !json.data || json.data.length === 0) {
-          resDiv.innerHTML = '<div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px;">現在、現役の在庫商品（出品中）は見つかりませんでした。</div>';
+          resDiv.innerHTML = '<div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px;">現在、出品中の商品は見つかりませんでした。</div>';
           countEl.innerText = "在庫: 0件";
+          globalInventoryData = [];
+          document.getElementById('price-pagination').style.display = 'none';
           return;
         }
-        
-        countEl.innerText = `現在の商品: ${json.data.length}件`;
-        
-        let html = "";
-        json.data.forEach(function(item, index) {
-          const uniqueId = "inv_" + index; // 各カードのID（電卓用）
-          
-          let badgeHtml = "";
-          if (item.daysText) {
-            let bColor = "#6d9eeb"; 
-            if (item.daysText.includes("30")) bColor = "#ea4335"; 
-            else if (item.daysText.includes("21")) bColor = "#fbbc04"; 
-            
-            badgeHtml = `<span style="background:${bColor}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; margin-left:6px;">⚠️ ${item.daysText}</span>`;
-          }
-          
-          let imgHtml = '<div style="width:65px; height:65px; background:#f8fafc; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
-          if (item.img) {
-            imgHtml = `<div style="width:65px; height:65px; background:#fff; border:1px solid #eee; border-radius:8px; padding:2px; flex-shrink:0;"><img src="${item.img}" style="width:100%; height:100%; object-fit:contain;"></div>`;
-          }
-
-          // 🚨 シートのJ列から引っこ抜いた「ライバル価格」をセレクトボックスに展開！
-          let rivalsHtml = "";
-          if (item.rivals && item.rivals.length > 0) {
-            rivalsHtml = `<select style="width:100%; padding:6px; font-size:11px; font-weight:bold; color:#1a365d; border:1px solid #cbd5e0; border-radius:4px; margin-top:8px; background:#fff; outline:none;">`;
-            item.rivals.forEach(r => {
-              rivalsHtml += `<option>${escapeHtml(r)}</option>`;
-            });
-            rivalsHtml += `</select>`;
-          } else {
-             rivalsHtml = `<div style="font-size:10px; color:#a0aec0; margin-top:6px; padding:4px;">ライバル情報なし (または取得前)</div>`;
-          }
-          
-          html += `
-          <div class="card" style="display:flex; flex-direction:column; padding:12px; margin-bottom:10px;">
-            <div style="display:flex; gap:12px; align-items:flex-start;">
-              ${imgHtml}
-              <div style="flex:1; min-width:0;">
-                <div style="font-size:12px; font-weight:bold; color:#1a365d; line-height:1.3; margin-bottom:6px;">💎 ${escapeHtml(item.title)}</div>
-                
-                <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:2px;">
-                  <span style="background:#e0f2fe; color:#0369a1; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold;">${item.asin}</span>
-                  <span style="background:#e2e8f0; color:#4a5568; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold;">${escapeHtml(item.condition)}</span>
-                  ${badgeHtml}
-                </div>
-              </div>
-            </div>
-            
-            ${rivalsHtml}
-            
-            <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:10px; border:1px solid #e2e8f0;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <span style="font-size:11px; font-weight:bold; color:#4a5568;">改定価格テスト:</span>
-                <div style="display:flex; align-items:center;">
-                  <span style="font-size:14px; font-weight:bold; color:#333; margin-right:4px;">¥</span>
-                  <input type="number" id="sim_price_${uniqueId}" value="${item.price}" oninput="calcSimProfit('${uniqueId}', ${item.cost}, ${item.fbaFee})" style="width:85px; text-align:right; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:15px; font-weight:900; color:#1a365d; outline:none;">
-                </div>
-              </div>
-              <div style="display:flex; justify-content:space-between; font-size:10px; color:#718096; margin-bottom:8px;">
-                <span>仕入: ¥${Number(item.cost).toLocaleString()}</span>
-                <span>FBA: ¥${Number(item.fbaFee).toLocaleString()}</span>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1px dashed #cbd5e0; padding-top:8px;">
-                <span style="font-size:11px; font-weight:bold; color:#4a5568;">手残り利益:</span>
-                <span id="sim_profit_${uniqueId}" style="font-size:16px; font-weight:900; color:#07A27B;">計算中...</span>
-              </div>
-            </div>
-            
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
-              <a href="https://www.amazon.co.jp/dp/${item.asin}" target="_blank" style="background:#f7941d; color:white; text-decoration:none; padding:8px 12px; border-radius:6px; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:4px;"><i class="fab fa-amazon"></i> カタログ</a>
-              <a href="https://sellercentral.amazon.co.jp/myinventory/inventory?searchTerm=${item.asin}" target="_blank" style="background:#e53e3e; color:white; text-decoration:none; padding:8px 12px; border-radius:6px; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:4px;"><i class="fas fa-edit"></i> セラセン改定へ</a>
-            </div>
-          </div>`;
-        });
-        resDiv.innerHTML = html;
-        
-        // 🌟 カードが表示された瞬間に、すべての商品の「初回計算」を走らせて画面に反映する！
-        json.data.forEach(function(item, index) {
-          calcSimProfit("inv_" + index, item.cost, item.fbaFee);
-        });
-        
+        globalInventoryData = json.data;
+        invCurrentPage = 1;
+        renderInventoryList();
       } catch(err) {
-        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">❌ 在庫リストの取得に失敗しました</div>';
+        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">❌ 取得に失敗しました</div>';
         countEl.innerText = "通信失敗";
       }
+    }
+
+    function renderInventoryList() {
+      const kw = document.getElementById('price-search-kw').value.toLowerCase().trim();
+      let filtered = globalInventoryData;
+      if (kw) {
+        filtered = globalInventoryData.filter(item => 
+          (item.title && item.title.toLowerCase().includes(kw)) || (item.asin && item.asin.toLowerCase().includes(kw)) || (item.sku && item.sku.toLowerCase().includes(kw))
+        );
+      }
+      
+      const countEl = document.getElementById('inventoryCount');
+      countEl.innerText = `現在の商品: ${filtered.length}件`;
+      
+      const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+      if (invCurrentPage > totalPages) invCurrentPage = totalPages;
+      if (invCurrentPage < 1) invCurrentPage = 1;
+      
+      const start = (invCurrentPage - 1) * ITEMS_PER_PAGE;
+      const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
+      const resDiv = document.getElementById('priceResult');
+      
+      if (pageItems.length === 0) {
+        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px;">見つかりませんでした。</div>';
+        document.getElementById('price-pagination').style.display = 'none';
+        return;
+      }
+      
+      let html = "";
+      pageItems.forEach(function(item, index) {
+        const uniqueId = "inv_" + start + "_" + index; 
+        let badgeHtml = "";
+        if (item.daysText) {
+          let bColor = "#6d9eeb"; if (item.daysText.includes("30")) bColor = "#ea4335"; else if (item.daysText.includes("21")) bColor = "#fbbc04"; 
+          badgeHtml = `<span style="background:${bColor}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; margin-left:6px;">⚠️ ${item.daysText}</span>`;
+        }
+        let imgHtml = '<div style="width:65px; height:65px; background:#f8fafc; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
+        if (item.img) imgHtml = `<div style="width:65px; height:65px; background:#fff; border:1px solid #eee; border-radius:8px; padding:2px; flex-shrink:0;"><img src="${item.img}" style="width:100%; height:100%; object-fit:contain;"></div>`;
+
+        let rivalsHtml = `<div style="font-size:10px; color:#a0aec0; margin-top:6px; padding:4px;">ライバル情報なし</div>`;
+        if (item.rivals && item.rivals.length > 0) {
+          rivalsHtml = `<select style="width:100%; padding:6px; font-size:11px; font-weight:bold; color:#1a365d; border:1px solid #cbd5e0; border-radius:4px; margin-top:8px; background:#fff; outline:none;">`;
+          item.rivals.forEach(r => { rivalsHtml += `<option>${escapeHtml(r)}</option>`; });
+          rivalsHtml += `</select>`;
+        }
+        
+        html += `
+        <div class="card" style="display:flex; flex-direction:column; padding:12px; margin-bottom:10px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            ${imgHtml}
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:12px; font-weight:bold; color:#1a365d; line-height:1.3; margin-bottom:6px;">💎 ${escapeHtml(item.title)}</div>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:2px;">
+                <span style="background:#e0f2fe; color:#0369a1; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold;">${item.asin}</span>
+                <span style="background:#e2e8f0; color:#4a5568; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold;">${escapeHtml(item.condition)}</span>
+                ${badgeHtml}
+              </div>
+            </div>
+          </div>
+          ${rivalsHtml}
+          <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:10px; border:1px solid #e2e8f0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:bold; color:#4a5568;">改定価格テスト:</span>
+              <div style="display:flex; align-items:center;">
+                <span style="font-size:14px; font-weight:bold; color:#333; margin-right:4px;">¥</span>
+                <input type="number" id="sim_price_${uniqueId}" value="${item.price}" oninput="calcSimProfit('${uniqueId}', ${item.cost}, ${item.fbaFee})" style="width:85px; text-align:right; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:15px; font-weight:900; color:#1a365d; outline:none;">
+              </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#718096; margin-bottom:8px;">
+              <span>仕入: ¥${Number(item.cost).toLocaleString()}</span>
+              <span>FBA: ¥${Number(item.fbaFee).toLocaleString()}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1px dashed #cbd5e0; padding-top:8px;">
+              <span style="font-size:11px; font-weight:bold; color:#4a5568;">手残り利益:</span>
+              <span id="sim_profit_${uniqueId}" style="font-size:16px; font-weight:900; color:#07A27B;">計算中...</span>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+            <a href="https://www.amazon.co.jp/dp/${item.asin}" target="_blank" style="background:#f7941d; color:white; text-decoration:none; padding:8px 12px; border-radius:6px; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:4px;"><i class="fab fa-amazon"></i> カタログ</a>
+            <a href="https://sellercentral.amazon.co.jp/myinventory/inventory?searchTerm=${item.asin}" target="_blank" style="background:#e53e3e; color:white; text-decoration:none; padding:8px 12px; border-radius:6px; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:4px;"><i class="fas fa-edit"></i> セラセン改定へ</a>
+          </div>
+        </div>`;
+      });
+      resDiv.innerHTML = html;
+      
+      pageItems.forEach(function(item, index) { calcSimProfit("inv_" + start + "_" + index, item.cost, item.fbaFee); });
+      
+      // ページネーションUI更新
+      document.getElementById('price-page-info').innerText = `${invCurrentPage} / ${totalPages} ページ`;
+      document.getElementById('price-btn-prev').disabled = (invCurrentPage === 1);
+      document.getElementById('price-btn-next').disabled = (invCurrentPage === totalPages);
+      document.getElementById('price-pagination').style.display = (totalPages > 1) ? 'flex' : 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- 📊 月別仕入・販売データ (検索＆ページネーション対応) ---
+    async function loadMonthlyData() {
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
+      
+      document.getElementById('monthly-summary').innerHTML = '<div class="loading-spinner">⌛ 最新の月別データを集計中...</div>';
+      try {
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getMonthlyData', ssUrl: ssUrl }) });
+        const json = await res.json();
+        
+        if (!json.success) { document.getElementById('monthly-summary').innerHTML = '<div class="card" style="color:red; text-align:center;">エラー: ' + json.message + '</div>'; return; }
+        
+        globalMonthlyData = json.data;
+        
+        // 全月を抽出してプルダウンを作成
+        let allMonths = new Set();
+        globalMonthlyData.purchase.forEach(d => allMonths.add(d.month));
+        globalMonthlyData.sales.forEach(d => allMonths.add(d.month));
+        
+        let monthArr = Array.from(allMonths).sort((a,b) => b.localeCompare(a));
+        const sel = document.getElementById('monthly-selector');
+        sel.innerHTML = "";
+        if(monthArr.length === 0) {
+           sel.innerHTML = "<option>データなし</option>";
+           document.getElementById('monthly-summary').innerHTML = "";
+           return;
+        }
+        monthArr.forEach(m => {
+           let opt = document.createElement('option');
+           opt.value = m; opt.innerText = m;
+           sel.appendChild(opt);
+        });
+        
+        renderMonthlyData();
+      } catch (err) {
+        document.getElementById('monthly-summary').innerHTML = '<div class="card" style="color:red; text-align:center;">通信エラーが発生しました。</div>';
+      }
+    }
+
+    function renderMonthlyData() {
+      const selMonth = document.getElementById('monthly-selector').value;
+      if(!selMonth || selMonth === "データなし") return;
+      
+      const isPurchase = (currentMonthlyTab === 'monthly-purchase');
+      const targetArr = isPurchase ? globalMonthlyData.purchase : globalMonthlyData.sales;
+      const monthData = targetArr.find(d => d.month === selMonth);
+      
+      const sumDiv = document.getElementById('monthly-summary');
+      if (!monthData) {
+        sumDiv.innerHTML = `<div class="card" style="text-align:center; color:#a0aec0; padding:20px;">${selMonth} の${isPurchase ? "仕入" : "販売"}データはありません。</div>`;
+        document.getElementById(isPurchase ? 'monthly-purchase-list' : 'monthly-sales-list').innerHTML = "";
+        document.getElementById('monthly-pagination').style.display = 'none';
+        return;
+      }
+      
+      // 🏆 サマリーUIの描画
+      let margin = monthData.sales > 0 ? Math.round((monthData.profit / monthData.sales) * 100) : 0;
+      let titleHTML = isPurchase ? `<i class="fas fa-box-open" style="color:#2b6cb0;"></i> 仕入合計` : `<i class="fas fa-hand-holding-usd" style="color:#d93025;"></i> 販売合計`;
+      
+      sumDiv.innerHTML = `
+        <div class="card" style="border-top:4px solid ${isPurchase ? '#3182ce' : '#e53e3e'};">
+           <div style="font-size:13px; font-weight:bold; color:#4a5568; margin-bottom:12px; display:flex; justify-content:space-between;">
+             <span>${titleHTML} (${monthData.count}件)</span>
+             <span style="color:#718096;">${monthData.month}</span>
+           </div>
+           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+             <div style="background:#f8fafc; padding:10px; border-radius:6px; text-align:center;">
+               <div style="font-size:10px; color:#718096; margin-bottom:4px;">総仕入額</div>
+               <div style="font-size:16px; font-weight:bold; color:#2d3748;">¥${Number(monthData.cost).toLocaleString()}</div>
+             </div>
+             <div style="background:#f8fafc; padding:10px; border-radius:6px; text-align:center;">
+               <div style="font-size:10px; color:#718096; margin-bottom:4px;">総販売額</div>
+               <div style="font-size:16px; font-weight:bold; color:#2d3748;">¥${Number(monthData.sales).toLocaleString()}</div>
+             </div>
+           </div>
+           <div style="background:${monthData.profit >= 0 ? '#f0fff4' : '#fff5f5'}; border:1px solid ${monthData.profit >= 0 ? '#c6f6d5' : '#fed7d7'}; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+             <span style="font-size:12px; font-weight:bold; color:#4a5568;">総利益 (利益率)</span>
+             <span style="font-size:20px; font-weight:900; color:${monthData.profit >= 0 ? '#38a169' : '#e53e3e'};">¥${Number(monthData.profit).toLocaleString()} <span style="font-size:14px;">(${margin}%)</span></span>
+           </div>
+        </div>
+      `;
+      
+      monthlyCurrentPage = 1;
+      renderMonthlyList();
+    }
+
+    function renderMonthlyList() {
+      const selMonth = document.getElementById('monthly-selector').value;
+      const isPurchase = (currentMonthlyTab === 'monthly-purchase');
+      const targetArr = isPurchase ? globalMonthlyData.purchase : globalMonthlyData.sales;
+      const monthData = targetArr.find(d => d.month === selMonth);
+      const listDiv = document.getElementById(isPurchase ? 'monthly-purchase-list' : 'monthly-sales-list');
+      const pagiDiv = document.getElementById('monthly-pagination');
+      
+      if (!monthData || !monthData.items || monthData.items.length === 0) {
+         listDiv.innerHTML = ""; pagiDiv.style.display = 'none'; return;
+      }
+      
+      const kw = document.getElementById('monthly-search-kw').value.toLowerCase().trim();
+      let filtered = monthData.items;
+      if (kw) {
+         filtered = monthData.items.filter(item => 
+           (item.title && item.title.toLowerCase().includes(kw)) || 
+           (item.asin && item.asin.toLowerCase().includes(kw)) ||
+           (item.orderNum && item.orderNum.toLowerCase().includes(kw))
+         );
+      }
+      
+      const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+      if (monthlyCurrentPage > totalPages) monthlyCurrentPage = totalPages;
+      if (monthlyCurrentPage < 1) monthlyCurrentPage = 1;
+      
+      const start = (monthlyCurrentPage - 1) * ITEMS_PER_PAGE;
+      const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
+      
+      if (pageItems.length === 0) {
+        listDiv.innerHTML = '<div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px;">見つかりませんでした。</div>';
+        pagiDiv.style.display = 'none';
+        return;
+      }
+      
+      let html = "";
+      pageItems.forEach(item => {
+        let orderHtml = item.orderNum ? `<div style="font-size:10px; color:#a0aec0; margin-top:4px;">注文番号: ${item.orderNum}</div>` : "";
+        html += `
+        <div class="card" style="padding:12px; margin-bottom:10px; border-left:4px solid ${isPurchase ? '#3182ce' : '#e53e3e'};">
+           <div style="display:flex; justify-content:space-between; margin-bottom:6px; align-items:center;">
+              <span style="font-size:11px; font-weight:bold; color:#718096;"><i class="far fa-calendar-alt"></i> ${item.date}</span>
+              <span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">${item.asin}</span>
+           </div>
+           <div style="font-size:12px; font-weight:bold; color:#1a365d; margin-bottom:8px; line-height:1.4;">💎 ${escapeHtml(item.title)}</div>
+           ${orderHtml}
+           <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:8px; padding-top:8px; border-top:1px dashed #e2e8f0;">
+              <div style="font-size:11px; color:#718096; line-height:1.5;">
+                 仕入: <span style="color:#333; font-weight:bold;">¥${Number(item.cost).toLocaleString()}</span><br>
+                 販売: <span style="color:#333; font-weight:bold;">¥${Number(item.sales).toLocaleString()}</span>
+              </div>
+              <div style="text-align:right;">
+                 <div style="font-size:10px; color:#718096;">利益</div>
+                 <div style="font-size:16px; font-weight:900; color:${item.profit >= 0 ? '#07A27B' : '#e53e3e'};">¥${Number(item.profit).toLocaleString()}</div>
+              </div>
+           </div>
+        </div>`;
+      });
+      listDiv.innerHTML = html;
+      
+      document.getElementById('monthly-page-info').innerText = `${monthlyCurrentPage} / ${totalPages} ページ`;
+      document.getElementById('monthly-btn-prev').disabled = (monthlyCurrentPage === 1);
+      document.getElementById('monthly-btn-next').disabled = (monthlyCurrentPage === totalPages);
+      pagiDiv.style.display = (totalPages > 1) ? 'flex' : 'none';
+      
+      // リストのトップへスクロール
+      document.getElementById('monthly-search-kw').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   </script>
 
