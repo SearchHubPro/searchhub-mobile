@@ -21,10 +21,13 @@
     
     .header-wrapper { position: sticky; top: 0; z-index: 100; background-color: #000000; padding-top: env(safe-area-inset-top); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .header { background-color: #1a365d; color: white; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; position: relative; }
-    .header-left { display: flex; gap: 12px; align-items: center; z-index: 2; width: 60px;}
-    .header-center { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; width: 50%; z-index: 1; }
+    
+    /* 🔴 左側のボタン群の幅を少し広げて3つ入るように調整 */
+    .header-left { display: flex; gap: 12px; align-items: center; z-index: 2; width: 90px;}
+    .header-center { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; width: 40%; z-index: 1; }
     .header h1 { margin: 0; font-size: 15px; font-weight: bold; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .header-right { display: flex; gap: 14px; align-items: center; z-index: 2; width: 60px; justify-content: flex-end;}
+    .header-right { display: flex; gap: 14px; align-items: center; z-index: 2; width: 90px; justify-content: flex-end;}
+    
     .header-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; outline: none; padding: 5px; transition: transform 0.5s ease; display: flex; align-items: center; justify-content: center;}
     .last-update { font-size: 10px; color: #a0aec0; margin-top: 2px; }
     
@@ -33,7 +36,7 @@
     .discord-on { color: #5865F2 !important; }
     .discord-off { color: #4a5568 !important; opacity: 0.4; }
 
-    /* 🔴 新しいダッシュボードUI */
+    /* ダッシュボードUI */
     .view { display: none; }
     .view.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -46,7 +49,6 @@
     .dash-btn.btn-watcher i { color: #07A27B; }
     .dash-btn.btn-amazon i { color: #ff9900; }
     
-    /* ダッシュボード用のデカ赤丸 */
     .dash-dot { display: none; position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; background-color: #e53e3e; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid white; }
     .dash-dot.active { display: block; animation: pop 0.3s ease; }
 
@@ -76,7 +78,7 @@
 
     .search-box { display: flex; gap: 6px; margin-bottom: 12px; }
     .search-box input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; outline: none; background: white; }
-    .search-box button { background: #07A27B; color: #fff; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+    .search-box button { background: #07A27B; color: #fff; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
 
     .market-price-container { display: flex; gap: 8px; margin-bottom: 12px; }
     .market-price-card { flex: 1; padding: 10px 12px; border-radius: 8px; text-align: center; }
@@ -134,6 +136,7 @@
       <div class="header-left">
         <button class="header-btn" id="backBtn" style="display:none;" onclick="openView('view-home')"><i class="fas fa-chevron-left"></i></button>
         <button class="header-btn" onclick="openConfig()"><i class="fas fa-cog"></i></button>
+        <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
       </div>
       <div class="header-center">
         <h1 id="headerTitle">SearchHub Mobile</h1>
@@ -213,11 +216,20 @@
     </div>
   </div>
 
+  <div id="view-history" class="view">
+    <div class="content">
+      <div class="search-box">
+        <input type="text" id="historyAsin" placeholder="ASINを入力 or ペースト" onkeypress="if(event.keyCode==13) searchHistory()">
+        <button onclick="searchHistory()" style="background:#4285f4;"><i class="fas fa-search"></i> 検索</button>
+      </div>
+      <div id="historyResult">
+        <div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px; font-size:12px;">ASINを入力して検索ボタンを押してな！</div>
+      </div>
+    </div>
+  </div>
+
   <div id="view-price" class="view">
     <div class="content"><div class="coming-soon"><i class="fas fa-tools"></i><br>価格改定機能は<br>次回アップデートで実装予定！</div></div>
-  </div>
-  <div id="view-history" class="view">
-    <div class="content"><div class="coming-soon"><i class="fas fa-tools"></i><br>過去実績検索機能は<br>次回アップデートで実装予定！</div></div>
   </div>
   <div id="view-monthly" class="view">
     <div class="content"><div class="coming-soon"><i class="fas fa-tools"></i><br>月別仕入・販売情報は<br>次回アップデートで実装予定！</div></div>
@@ -250,7 +262,6 @@
       set: function(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
     };
 
-    // 💡 Sメルカリ等も内部では維持しつつ、画面上の表示を「メルカリ」等に分けたで！
     const siteKeyMap = {
       'sniper-mercari': 'Sメルカリ', 'sniper-paypay': 'Sヤフフリ', 'sniper-offmall': 'Sオフモ',
       'watcher-mercari': 'メルカリ', 'watcher-paypay': 'ヤフーフリマ', 'watcher-yahoo': 'ヤフオク',
@@ -273,7 +284,6 @@
       }
     }
 
-    // 🔴 画面（ビュー）の切り替えロジック
     function openView(viewId) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(viewId).classList.add('active');
@@ -297,7 +307,6 @@
       window.scrollTo(0,0);
     }
 
-    // 🔴 バッジ（赤丸）計算ロジック（ダッシュボード連動）
     function recalcBadges() {
       let totalSniper = 0;
       let totalWatcher = 0;
@@ -311,7 +320,6 @@
         if (divId.startsWith('sniper-')) totalSniper += unreadCount;
         if (divId.startsWith('watcher-')) totalWatcher += unreadCount;
         
-        // タブ自体の赤ドットON/OFF
         const tabBtn = document.querySelector(`button[onclick*="'${divId}'"]`);
         if (tabBtn) {
           const dot = tabBtn.querySelector('.tab-dot');
@@ -322,7 +330,6 @@
         }
       }
       
-      // ダッシュボード（ホーム画面）の巨大赤丸ON/OFF
       const dashDotSniper = document.getElementById('dash-dot-sniper');
       const dashDotWatcher = document.getElementById('dash-dot-watcher');
       if (totalSniper > 0) dashDotSniper.classList.add('active'); else dashDotSniper.classList.remove('active');
@@ -422,7 +429,6 @@
           container.innerHTML = "";
           
           if (currentItems.length === 0) {
-            // 表示名からSを取る
             let dispName = gasSiteName.replace(/^S/, '');
             container.innerHTML = '<div class="no-data">「' + dispName + '」に現在、新着・利益商品は見つかっていません。</div>';
           } else {
@@ -504,10 +510,8 @@
       } catch(e) { updateDiscordBtnUI(currentStatus); alert("通信エラーが発生しました。"); }
     }
 
-    // 🔴 スワイプ処理（現在のビューに応じてOrderを変える！）
     function setupSwipe() {
       let touchStartX = 0; let touchStartY = 0;
-      // スワイプ判定を全体ではなく、sniperとwatcherの中身だけに限定
       const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher')];
       
       areas.forEach(contentArea => {
@@ -561,6 +565,67 @@
       const url = AppStorage.get("sh_ssurl", "");
       if (!url) { openConfig(); return alert("⚙️設定から販売管理シートのURLを設定してな！"); }
       window.open(url, "_blank");
+    }
+
+    // --- 📜 過去の販売実績検索機能 ---
+    async function searchHistory() {
+      const asin = document.getElementById('historyAsin').value.trim();
+      const resDiv = document.getElementById('historyResult');
+      
+      if(!asin) { 
+        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">ASINを入力してください</div>'; 
+        return; 
+      }
+      
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      
+      if (!ssUrl || !targetGasUrl) { 
+        openConfig(); 
+        return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); 
+      }
+      
+      resDiv.innerHTML = '<div class="loading-spinner">⌛ 台帳からすべての実績を抽出中...</div>';
+      
+      try {
+        const res = await fetch(targetGasUrl, { 
+          method: 'POST', 
+          body: JSON.stringify({ command: 'findPastData', ssUrl: ssUrl, asin: asin }) 
+        });
+        const json = await res.json();
+        
+        if (!json.success || !json.data || json.data.length === 0) {
+          resDiv.innerHTML = '<div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px;">販売実績が見つかりませんでした。</div>';
+          return;
+        }
+        
+        let html = "";
+        json.data.reverse().forEach(function(r) {
+          html += `
+          <div class="card" style="border-left: 6px solid #34a853; margin-bottom: 12px; padding: 16px;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;">
+              <span style="font-size: 13px; color: #666; font-weight: bold;">仕入日</span>
+              <span style="font-size: 15px; font-weight: bold; color: #333;">${r.date}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;">
+              <span style="font-size: 13px; color: #666; font-weight: bold;">販売額</span>
+              <span style="font-size: 16px; font-weight: bold; color: #333;">${Number(r.price).toLocaleString()}円</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding-bottom: 6px; margin-bottom: 8px;">
+              <span style="font-size: 13px; color: #666; font-weight: bold;">仕入値</span>
+              <span style="font-size: 16px; font-weight: bold; color: #333;">${Number(r.siire).toLocaleString()}円</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 4px;">
+              <span style="font-size: 13px; color: #666; font-weight: bold;">今回の利益</span>
+              <span style="font-size: 22px; font-weight: 900; color: #d93025;">${Number(r.profit).toLocaleString()}円</span>
+            </div>
+          </div>`;
+        });
+        resDiv.innerHTML = html;
+        
+      } catch(err) {
+        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">❌ 通信エラーが発生しました</div>';
+      }
     }
 
     // --- Amazon Keepa 関連関数 ---
