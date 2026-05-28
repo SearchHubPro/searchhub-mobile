@@ -229,8 +229,17 @@
   </div>
 
   <div id="view-price" class="view">
-    <div class="content"><div class="coming-soon"><i class="fas fa-tools"></i><br>価格改定機能は<br>次回アップデートで実装予定！</div></div>
+    <div class="content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+        <span style="font-size:12px; font-weight:bold; color:#4a5568;" id="inventoryCount">在庫を読み込み中...</span>
+        <button onclick="loadInventoryPrice()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold;"><i class="fas fa-sync-alt"></i> 更新</button>
+      </div>
+      <div id="priceResult">
+        <div class="loading-spinner">⌛ マネージャーシートから現役の在庫リストを抽出中...</div>
+      </div>
+    </div>
   </div>
+
   <div id="view-monthly" class="view">
     <div class="content"><div class="coming-soon"><i class="fas fa-tools"></i><br>月別仕入・販売情報は<br>次回アップデートで実装予定！</div></div>
   </div>
@@ -304,6 +313,12 @@
         else if(viewId === 'view-history') titleEl.innerText = '販売履歴リサーチ';
         else if(viewId === 'view-monthly') titleEl.innerText = '月別仕入・販売情報';
       }
+
+      // 📈 価格改定画面が開かれたら、自動で最新在庫を読みに行く
+      if (viewId === 'view-price') {
+        loadInventoryPrice();
+      }
+
       window.scrollTo(0,0);
     }
 
@@ -724,7 +739,7 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; color:#90cdf4;"><span>入金目安</span><span id="resNyukin">--</span></div>
             <div style="display:flex; justify-content:space-between; font-size:18px; color:#48bb78;"><span>想定利益</span><span id="resProfit">--</span></div>
           </div>
-          <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:16px;">🚀 販売管理sheetへ仕入れ登録</button>
+          <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:16px;">🚀 SearchHub : Managerへ仕入れ登録</button>
           <div class="grid-3">
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
             <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none;">検索</button>
@@ -761,6 +776,90 @@
         if (resJson.success) { btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！"; }
         else { alert("登録失敗: " + resJson.message); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
       } catch(err) { alert("通信エラーが発生しました"); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
+    }
+
+    // --- 📈 価格改定 在庫リスト取得機能 ---
+    async function loadInventoryPrice() {
+      const resDiv = document.getElementById('priceResult');
+      const countEl = document.getElementById('inventoryCount');
+      
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      
+      if (!ssUrl || !targetGasUrl) { 
+        openConfig(); 
+        resDiv.innerHTML = '<div class="card" style="text-align:center; padding:20px; color:#e53e3e; font-weight:bold;">⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！</div>';
+        return; 
+      }
+      
+      resDiv.innerHTML = '<div class="loading-spinner">⌛ マネージャーシートから現役の在庫リストを抽出中...</div>';
+      countEl.innerText = "同期中...";
+      
+      try {
+        const cacheBuster = "&t=" + new Date().getTime();
+        const res = await fetch(targetGasUrl, { 
+          method: 'POST', 
+          body: JSON.stringify({ command: 'getInventoryPrice', ssUrl: ssUrl }) 
+        });
+        const json = await res.json();
+        
+        if (!json.success || !json.data || json.data.length === 0) {
+          resDiv.innerHTML = '<div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px;">現在、現役の在庫商品（出品中）は見つかりませんでした。</div>';
+          countEl.innerText = "在庫: 0件";
+          return;
+        }
+        
+        countEl.innerText = `現在の商品: ${json.data.length}件`;
+        
+        let html = "";
+        json.data.forEach(function(item) {
+          // 🚨 在庫滞留日数に応じたアラートバッジの色分け設定
+          let badgeHtml = "";
+          if (item.daysText) {
+            let bColor = "#6d9eeb"; // 14日以上（青）
+            if (item.daysText.includes("30")) bColor = "#ea4335"; // 30日以上（赤）
+            else if (item.daysText.includes("21")) bColor = "#fbbc04"; // 21日以上（黄）
+            
+            badgeHtml = `<span style="background:${bColor}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; margin-left:6px;">⚠️ ${item.daysText}</span>`;
+          }
+          
+          // 📷 画像がない場合のフォールバック
+          let imgHtml = '<div style="width:65px; height:65px; background:#f8fafc; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
+          if (item.img) {
+            imgHtml = `<div style="width:65px; height:65px; background:#fff; border:1px solid #eee; border-radius:8px; padding:2px; flex-shrink:0;"><img src="${item.img}" style="width:100%; height:100%; object-fit:contain;"></div>`;
+          }
+          
+          html += `
+          <div class="card" style="display:flex; gap:12px; align-items:center; padding:12px; margin-bottom:10px;">
+            ${imgHtml}
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:12px; font-weight:bold; color:#1a365d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;">💎 ${escapeHtml(item.title)}</div>
+              
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                <span style="background:#e0f2fe; color:#0369a1; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold;">${item.asin}</span>
+                <span style="background:#e2e8f0; color:#4a5568; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:bold;">${escapeHtml(item.condition)}</span>
+                ${badgeHtml}
+              </div>
+              
+              <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="font-size:11px; color:#718096;">
+                  仕入: <span style="font-weight:bold; color:#333;">¥${Number(item.cost).toLocaleString()}</span><br>
+                  価格: <span style="font-size:14px; font-weight:900; color:#07A27B;">¥${Number(item.price).toLocaleString()}</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                  <a href="https://www.amazon.co.jp/dp/${item.asin}" target="_blank" style="background:#f7941d; color:white; text-decoration:none; padding:5px 8px; border-radius:6px; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:2px;"><i class="fab fa-amazon"></i> カタログ</a>
+                  <a href="https://sellercentral.amazon.co.jp/myinventory/inventory?searchTerm=${item.asin}" target="_blank" style="background:#e53e3e; color:white; text-decoration:none; padding:5px 8px; border-radius:6px; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:2px;"><i class="fas fa-edit"></i> 改定</a>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        });
+        resDiv.innerHTML = html;
+        
+      } catch(err) {
+        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">❌ 在庫リストの取得に失敗しました</div>';
+        countEl.innerText = "通信失敗";
+      }
     }
   </script>
 
