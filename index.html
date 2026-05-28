@@ -315,10 +315,13 @@
 
       try {
         const fetchPromises = [];
-        if (urlSniper) fetchPromises.push(fetch(urlSniper + "?command=mobileData").then(r => r.json()).catch(() => null));
+       // 🚀 キャッシュバスター：スマホの古い記憶を強制的に捨てさせる魔法
+        const cacheBuster = "&t=" + new Date().getTime();
+
+        if (urlSniper) fetchPromises.push(fetch(urlSniper + "?command=mobileData" + cacheBuster).then(r => r.json()).catch(() => null));
         else fetchPromises.push(Promise.resolve(null));
 
-        if (url10) fetchPromises.push(fetch(url10 + "?command=mobileData").then(r => r.json()).catch(() => null));
+        if (url10) fetchPromises.push(fetch(url10 + "?command=mobileData" + cacheBuster).then(r => r.json()).catch(() => null));
         else fetchPromises.push(Promise.resolve(null));
 
         const [resSniper, res10] = await Promise.all(fetchPromises);
