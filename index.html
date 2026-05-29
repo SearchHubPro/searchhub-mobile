@@ -577,13 +577,18 @@
         let imageUrl = imgRaw ? (imgRaw.startsWith('http') ? imgRaw : 'https://images-na.ssl-images-amazon.com/images/I/' + imgRaw) : '';
         const avgUsed = p.stats.avg90 && p.stats.avg90[2] !== -1 ? p.stats.avg90[2] : 0;
         const minUsed = p.stats.current && p.stats.current[2] !== -1 ? p.stats.current[2] : 0;
-       // カート価格（新品カートか中古カートの価格を取得）
+// 🛒 カート価格の取得ロジック（完全修正版）
 let buyBoxUsed = 0;
-if (p.stats) {
-  if (p.stats.buyBoxPrice > 0) buyBoxUsed = p.stats.buyBoxPrice + (p.stats.buyBoxShipping > 0 ? p.stats.buyBoxShipping : 0);
-  if (p.stats.buyBoxUsedPrice > 0) buyBoxUsed = p.stats.buyBoxUsedPrice + (p.stats.buyBoxUsedShipping > 0 ? p.stats.buyBoxUsedShipping : 0);
+if (p.stats && p.stats.current) {
+  // Keepaのインデックス18番が「現在の標準カート価格」
+  if (p.stats.current[18] !== undefined && p.stats.current[18] !== -1) {
+    buyBoxUsed = p.stats.current[18];
+  } 
+  // 念のための予備ルート（APIのバージョン違い対応）
+  else if (p.stats.buyBoxPrice !== undefined && p.stats.buyBoxPrice > 0) {
+    buyBoxUsed = p.stats.buyBoxPrice + (p.stats.buyBoxShipping > 0 ? p.stats.buyBoxShipping : 0);
+  }
 }
-
 // 中古出品者数（インデックス12）
 const usedOffers = (p.stats.current && p.stats.current[12] !== -1) ? p.stats.current[12] : 0;
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
