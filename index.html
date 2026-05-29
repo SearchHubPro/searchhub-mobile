@@ -390,6 +390,7 @@
       recalcBadges(); 
     }
 
+    // ★ ここが「自動リロード」の核となる部分！消えてないでバッチリ動く！
     document.addEventListener("DOMContentLoaded", function() {
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
@@ -578,6 +579,9 @@
         const avgUsed = p.stats.avg90 && p.stats.avg90[2] !== -1 ? p.stats.avg90[2] : 0;
         const minUsed = p.stats.current && p.stats.current[2] !== -1 ? p.stats.current[2] : 0;
         
+        // ★ 青丸部用：手数料%の取得（取得不可の場合は10）
+        const referralFeePercent = p.referralFeePercentage || 10;
+        
         // 🛒 【超シンプル】新品無視！中古カートだけを確実に拾うロジック
         let bbUsedPrice = 0;
         if (p.stats) {
@@ -592,12 +596,8 @@
           }
         }
         
-        let bbLabel = "カート";
-        let bbValText = bbUsedPrice > 0 ? '¥' + bbUsedPrice.toLocaleString() : 'なし';
-        let bbColor = "#22543d";
-        let bbLabelColor = "#2f855a";
-        let bbBg = "#f0fff4";
-        let bbBorder = "#c6f6d5";
+        // ★ カートのテキストを「情報なし」に変更
+        let bbValText = bbUsedPrice > 0 ? '¥' + bbUsedPrice.toLocaleString() : '情報なし';
 
         // 中古出品者数（インデックス12）
         const usedOffers = (p.stats.current && p.stats.current[12] !== -1) ? p.stats.current[12] : 0;
@@ -631,45 +631,59 @@
               <span style="font-size:18px; font-weight:900; color:#2c4c8f;">${usedOffers}</span>
             </div>
           </div>
-          <div class="market-price-container" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px;">
-            <div class="market-price-card" style="background:#ebf8ff; border:1px solid #bee3f8; padding:10px 4px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#2b6cb0; font-weight:bold; margin-bottom:2px;">平均(90)</div>
-              <div style="font-size:14px; font-weight:bold; color:#2c5282;">¥${avgUsed > 0 ? avgUsed.toLocaleString() : '0'}</div>
+
+          <div class="market-price-container" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:4px;">
+            <div class="market-price-card" style="background:#ebf8ff; border:1px solid #bee3f8; padding:8px 4px; border-radius:8px; text-align:center;">
+              <div style="font-size:10px; color:#2b6cb0; font-weight:bold; margin-bottom:2px;">平均(90)</div>
+              <div style="font-size:13px; font-weight:bold; color:#2c5282;">¥${avgUsed > 0 ? avgUsed.toLocaleString() : '0'}</div>
             </div>
-            <div class="market-price-card" style="background:#fff5f5; border:1px solid #fed7d7; padding:10px 4px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:#c53030; font-weight:bold; margin-bottom:2px;">中古最安</div>
-              <div style="font-size:14px; font-weight:bold; color:#9b2c2c;">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div>
+            <div class="market-price-card" style="background:#fff5f5; border:1px solid #fed7d7; padding:8px 4px; border-radius:8px; text-align:center;">
+              <div style="font-size:10px; color:#c53030; font-weight:bold; margin-bottom:2px;">中古最安</div>
+              <div style="font-size:13px; font-weight:bold; color:#9b2c2c;">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div>
             </div>
-            <div class="market-price-card" style="background:${bbBg}; border:1px solid ${bbBorder}; padding:10px 4px; border-radius:8px; text-align:center;">
-              <div style="font-size:11px; color:${bbLabelColor}; font-weight:bold; margin-bottom:2px;">${bbLabel}</div>
-              <div style="font-size:14px; font-weight:bold; color:${bbColor};">${bbValText}</div>
+            <div class="market-price-card" style="background:#f0fff4; border:1px solid #c6f6d5; padding:8px 4px; border-radius:8px; text-align:center;">
+              <div style="font-size:10px; color:#2f855a; font-weight:bold;">${referralFeePercent}%</div>
+              <div style="font-size:10px; color:#2f855a; font-weight:bold;">カート</div>
+              <div style="font-size:13px; font-weight:bold; color:#22543d; margin-top:2px;">${bbValText}</div>
             </div>
           </div>
+          
+          <div style="font-size: 10px; color: #718096; text-align: right; margin-bottom: 8px; padding-right: 4px;">
+            ※Keepaの情報を元に表示しています
+          </div>
+
           <div class="calc-box">
             <div class="calc-row"><span>仕入れ値</span><input type="number" id="bPrice" placeholder="0" onfocus="this.placeholder=''" onblur="this.placeholder='0'"></div>
             <div class="calc-row"><span>経費/送料</span><input type="number" id="ePrice" placeholder="0" onfocus="this.placeholder=''" onblur="this.placeholder='0'"></div>
             <div class="calc-row"><span>販売価格</span><input type="number" id="sPrice" value="${minUsed}"></div>
             <div style="border-top:1px solid #555; margin:12px 0 8px 0; padding-top:8px; font-size:12px; color:#aaa;">
-              <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>販売手数料 (10%)</span><span id="resComm">--</span></div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>販売手数料 (${referralFeePercent}%)</span><span id="resComm">--</span></div>
               <div style="display:flex; justify-content:space-between;"><span>FBA手数料</span><span>-¥${fbaFee.toLocaleString()}</span></div>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; color:#90cdf4;"><span>入金目安</span><span id="resNyukin">--</span></div>
             <div style="display:flex; justify-content:space-between; font-size:18px; color:#48bb78;"><span>想定利益</span><span id="resProfit">--</span></div>
           </div>
           <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:16px;">🚀 SearchHub : Managerへ仕入れ登録</button>
+          
           <div class="grid-3">
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
             <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none;">検索</button>
             <a href="https://www.amazon.co.jp/dp/${asin}" target="_blank" class="btn-link" style="background:#f7941d;">Amazon</a>
           </div>`;
+          
         const updateCalc = function() {
           const sPrice = parseInt(document.getElementById('sPrice').value) || 0;
           const bPrice = parseInt(document.getElementById('bPrice').value) || 0;
           const ePrice = parseInt(document.getElementById('ePrice').value) || 0;
-          const comm = Math.floor(sPrice * 0.1); const nyukin = sPrice - comm - fbaFee; const profit = nyukin - bPrice - ePrice;
+          // ★ 動的な手数料%を使った正確な計算
+          const comm = Math.floor(sPrice * (referralFeePercent / 100)); 
+          const nyukin = sPrice - comm - fbaFee; 
+          const profit = nyukin - bPrice - ePrice;
           const margin = sPrice > 0 ? Math.floor((profit / sPrice) * 100) : 0;
-          document.getElementById('resComm').innerText = '-¥' + comm.toLocaleString(); document.getElementById('resNyukin').innerText = '¥' + nyukin.toLocaleString();
-          document.getElementById('resProfit').innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)'; document.getElementById('resProfit').style.color = profit >= 0 ? '#48bb78' : '#e53e3e';
+          document.getElementById('resComm').innerText = '-¥' + comm.toLocaleString(); 
+          document.getElementById('resNyukin').innerText = '¥' + nyukin.toLocaleString();
+          document.getElementById('resProfit').innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)'; 
+          document.getElementById('resProfit').style.color = profit >= 0 ? '#48bb78' : '#e53e3e';
         };
         ['sPrice', 'bPrice', 'ePrice'].forEach(id => { document.getElementById(id).addEventListener('input', updateCalc); });
         updateCalc();
@@ -677,12 +691,22 @@
     }
     
     async function sendToManager(asin) {
+      // ★ ここが追加された【誤爆防止ポップアップ】
+      const bPrice = document.getElementById("bPrice").value || 0;
+      const ePrice = document.getElementById("ePrice").value || 0;
+      const sPrice = document.getElementById("sPrice").value || 0;
+
+      const confirmMsg = `【仕入れ登録確認】\n\nASIN: ${asin}\n仕入値: ${bPrice}円\n経費/送料: ${ePrice}円\n販売値: ${sPrice}円\n\nこの内容で登録してよろしいですか？`;
+      if (!confirm(confirmMsg)) {
+        return; // キャンセルされたら処理を止める
+      }
+
       const btn = document.getElementById("regBtn"); const ssUrl = AppStorage.get("sh_ssurl", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
       if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
       btn.disabled = true; btn.innerHTML = "⌛ 登録中...";
       try {
-        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'register', ssUrl: ssUrl, data: { asin: asin, buyPrice: document.getElementById("bPrice").value || 0, shipping: document.getElementById("ePrice").value || 0, sellPrice: document.getElementById("sPrice").value || 0 } }) });
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'register', ssUrl: ssUrl, data: { asin: asin, buyPrice: bPrice, shipping: ePrice, sellPrice: sPrice } }) });
         const resJson = await res.json();
         if (resJson.success) { btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！"; } else { alert("登録失敗: " + resJson.message); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
       } catch(err) { alert("通信エラーが発生しました"); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
