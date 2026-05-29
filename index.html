@@ -376,6 +376,15 @@
       const dashDotWatcher = document.getElementById('dash-dot-watcher');
       if (totalSniper > 0) dashDotSniper.classList.add('active'); else dashDotSniper.classList.remove('active');
       if (totalWatcher > 0) dashDotWatcher.classList.add('active'); else dashDotWatcher.classList.remove('active');
+
+      // ★ スマホのアイコンに通知数（バッジ）を表示（Sniperの未読数のみ）
+      if ('setAppBadge' in navigator) {
+        if (totalSniper > 0) {
+          navigator.setAppBadge(totalSniper).catch(e => console.log('Badge error:', e));
+        } else {
+          navigator.clearAppBadge().catch(e => console.log('Badge clear error:', e));
+        }
+      }
     }
 
     function markAsRead(element) {
@@ -390,11 +399,8 @@
       recalcBadges(); 
     }
 
-    // ★ 起動時にバッジ（赤丸）を強制的に消去する処理を追加！
+    // ★ 起動時と裏から戻ってきた時の「自動リロード」を確実に発動
     document.addEventListener("DOMContentLoaded", function() {
-      if ('clearAppBadge' in navigator) {
-        navigator.clearAppBadge().catch(console.error);
-      }
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
@@ -407,10 +413,13 @@
       }
     });
 
-    // ★ アプリを裏から表に開いた時にも赤丸を消去する
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && 'clearAppBadge' in navigator) {
-        navigator.clearAppBadge().catch(console.error);
+      if (document.visibilityState === "visible") {
+        const urlSniper = AppStorage.get("sh_sniper_url", ""); 
+        const url10 = AppStorage.get("sh_tensite_url", "");
+        if (urlSniper || url10) {
+          syncPatrolData();
+        }
       }
     });
 
@@ -589,10 +598,8 @@
         const avgUsed = p.stats.avg90 && p.stats.avg90[2] !== -1 ? p.stats.avg90[2] : 0;
         const minUsed = p.stats.current && p.stats.current[2] !== -1 ? p.stats.current[2] : 0;
         
-        // ★ 青丸部用：手数料%の取得（取得不可の場合は10）
         const referralFeePercent = p.referralFeePercentage || 10;
         
-        // 🛒 【超シンプル】新品無視！中古カートだけを確実に拾うロジック
         let bbUsedPrice = 0;
         if (p.stats) {
           if (p.stats.buyBoxUsedPrice !== undefined && p.stats.buyBoxUsedPrice > 0) {
@@ -609,7 +616,6 @@
         // ★ カートのテキストを「情報なし」に変更
         let bbValText = bbUsedPrice > 0 ? '¥' + bbUsedPrice.toLocaleString() : '情報なし';
 
-        // 中古出品者数（インデックス12）
         const usedOffers = (p.stats.current && p.stats.current[12] !== -1) ? p.stats.current[12] : 0;
 
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
@@ -620,25 +626,28 @@
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
 
+        // ★ 規制確認ボタンを移動し、左側の隙間を調整
         resView.innerHTML = `
-          <div class="card" style="display:flex; gap:12px; align-items:flex-start; margin-bottom:4px;">
+          <div class="card" style="display:flex; gap:12px; align-items:flex-start; margin-bottom:4px; padding-bottom:8px;">
             ${imgHtml}
-            <div style="flex:1; min-width:0;">
-              <div style="font-size:11px; color:#555; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">型番: <span id="itemModelText" style="color:#000;">${modelNum !== '不明' ? modelNum : productTitle.substring(0,30)+'...'}</span></div>
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center;">
+              <div style="font-size:11px; color:#555; font-weight:bold; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">型番: <span id="itemModelText" style="color:#000;">${modelNum !== '不明' ? modelNum : productTitle.substring(0,30)+'...'}</span></div>
               <div style="display:flex; align-items:center; gap:4px; margin-bottom:6px; cursor:pointer;" onclick="copyAsin('${asin}')">
                 <span style="font-size:11px; font-weight:bold; color:#666;">ASIN:</span>
                 <span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${asin}</span>
                 <i class="far fa-copy text-gray-400 text-[12px] ml-1" id="copyIcon"></i>
               </div>
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-                <span class="badge" style="border:1px solid ${rColor}; color:${rColor};">${rank}ランク</span>
-                <span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white;">${sizeTier}</span>
-                <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="background:#e53e3e; color:#fff; text-decoration:none; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; box-shadow:0 1px 2px rgba(0,0,0,0.1);">規制確認</a>
+                <span class="badge" style="border:1px solid ${rColor}; color:${rColor}; padding:3px 8px;">${rank}ランク</span>
+                <span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white; padding:3px 8px;">${sizeTier}</span>
               </div>
             </div>
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f0f4ff; border:1px solid #dbeafe; padding:6px 8px; border-radius:8px; min-width: 45px; flex-shrink:0;">
-              <span style="font-size:10px; color:#4a72b2; font-weight:bold; margin-bottom:2px;">中古出品</span>
-              <span style="font-size:18px; font-weight:900; color:#2c4c8f;">${usedOffers}</span>
+            <div style="display:flex; flex-direction:column; align-items:stretch; gap:6px; flex-shrink:0; width:55px;">
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f0f4ff; border:1px solid #dbeafe; padding:6px 4px; border-radius:8px;">
+                <span style="font-size:10px; color:#4a72b2; font-weight:bold; margin-bottom:2px;">中古出品</span>
+                <span style="font-size:18px; font-weight:900; color:#2c4c8f; line-height:1;">${usedOffers}</span>
+              </div>
+              <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="background:#e53e3e; color:#fff; text-decoration:none; padding:4px 0; border-radius:6px; font-size:10px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15); text-align:center; display:block; line-height:1.2;">規制確認</a>
             </div>
           </div>
 
@@ -656,7 +665,7 @@
               <div style="font-size:13px; font-weight:bold; color:#9b2c2c;">¥${minUsed > 0 ? minUsed.toLocaleString() : '0'}</div>
             </div>
             <div class="market-price-card" style="background:#f0fff4; border:1px solid #c6f6d5; padding:8px 4px; border-radius:8px; text-align:center;">
-              <div style="font-size:10px; color:#2f855a; font-weight:bold; margin-bottom:2px;">カート</div>
+              <div style="font-size:10px; color:#2f855a; font-weight:bold; margin-bottom:2px;">カート価格</div>
               <div style="font-size:13px; font-weight:bold; color:#22543d;">${bbValText}</div>
             </div>
           </div>
@@ -684,7 +693,6 @@
           const sPrice = parseInt(document.getElementById('sPrice').value) || 0;
           const bPrice = parseInt(document.getElementById('bPrice').value) || 0;
           const ePrice = parseInt(document.getElementById('ePrice').value) || 0;
-          // ★ 動的な手数料%を使った正確な計算
           const comm = Math.floor(sPrice * (referralFeePercent / 100)); 
           const nyukin = sPrice - comm - fbaFee; 
           const profit = nyukin - bPrice - ePrice;
@@ -699,7 +707,7 @@
       } catch (err) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>'; }
     }
     
-    // ★ ここが追加された【誤爆防止ポップアップ】
+    // ★ 誤爆防止ポップアップ
     window.sendToManager = async function(asin) {
       const bPrice = document.getElementById("bPrice").value || 0;
       const ePrice = document.getElementById("ePrice").value || 0;
@@ -707,7 +715,7 @@
 
       const confirmMsg = `【仕入れ登録確認】\n\nASIN: ${asin}\n仕入値: ${bPrice}円\n経費/送料: ${ePrice}円\n販売値: ${sPrice}円\n\nこの内容で登録してよろしいですか？`;
       if (!confirm(confirmMsg)) {
-        return; // キャンセルされたら処理を止める
+        return;
       }
 
       const btn = document.getElementById("regBtn"); const ssUrl = AppStorage.get("sh_ssurl", "");
