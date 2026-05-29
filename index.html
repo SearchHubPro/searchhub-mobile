@@ -566,7 +566,7 @@
           if (!searchJson.products || searchJson.products.length === 0) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 商品が見つかりませんでした。</div>'; return; }
           asin = searchJson.products[0].asin;
         }
-        const prodRes = await fetch('https://api.keepa.com/product?key=' + apiKey + '&domain=5&asin=' + asin + '&stats=90');
+        const prodRes = await fetch('https://api.keepa.com/product?key=' + apiKey + '&domain=5&asin=' + asin + '&stats=90&buybox=1');
         const prodJson = await prodRes.json();
         const p = prodJson.products[0];
         const productTitle = p.title || fallbackTitle || '不明'; const modelNum = p.model || '不明';
@@ -577,8 +577,15 @@
         let imageUrl = imgRaw ? (imgRaw.startsWith('http') ? imgRaw : 'https://images-na.ssl-images-amazon.com/images/I/' + imgRaw) : '';
         const avgUsed = p.stats.avg90 && p.stats.avg90[2] !== -1 ? p.stats.avg90[2] : 0;
         const minUsed = p.stats.current && p.stats.current[2] !== -1 ? p.stats.current[2] : 0;
-        const buyBoxUsed = (p.stats && p.stats.buyBoxUsedPrice > 0) ? (p.stats.buyBoxUsedPrice + (p.stats.buyBoxUsedShipping || 0)) : 0;
-        const usedOffers = (p.stats.current && p.stats.current[11] !== -1) ? p.stats.current[11] : 0;
+       // カート価格（新品カートか中古カートの価格を取得）
+let buyBoxUsed = 0;
+if (p.stats) {
+  if (p.stats.buyBoxPrice > 0) buyBoxUsed = p.stats.buyBoxPrice + (p.stats.buyBoxShipping > 0 ? p.stats.buyBoxShipping : 0);
+  if (p.stats.buyBoxUsedPrice > 0) buyBoxUsed = p.stats.buyBoxUsedPrice + (p.stats.buyBoxUsedShipping > 0 ? p.stats.buyBoxUsedShipping : 0);
+}
+
+// 中古出品者数（インデックス12）
+const usedOffers = (p.stats.current && p.stats.current[12] !== -1) ? p.stats.current[12] : 0;
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
         const drops = p.stats.salesRankDrops90 || 0; const score = Math.floor(drops / 3) * 2;
         let rank = 'E', rColor = '#808080';
