@@ -730,12 +730,22 @@
     }
 
     // --- 📈 価格改定 ---
-    window.calcSimProfit = function(id, cost, fbaFee) {
-      const priceInput = document.getElementById('sim_price_' + id); const profitSpan = document.getElementById('sim_profit_' + id);
+    window.calcSimProfit = function(id, cost, fbaFee, feePercent) {
+      // ★ 引数に feePercent を追加。データがなければ10%で計算する保険付き
+      const actualFeePercent = feePercent || 10; 
+      
+      const priceInput = document.getElementById('sim_price_' + id); 
+      const profitSpan = document.getElementById('sim_profit_' + id);
       if(!priceInput || !profitSpan) return;
-      const price = Number(priceInput.value) || 0; const comm = Math.floor(price * 0.10); 
-      const profit = price - comm - fbaFee - cost; const margin = price > 0 ? Math.floor((profit / price) * 100) : 0;
-      profitSpan.style.color = profit >= 0 ? '#07A27B' : '#e53e3e'; profitSpan.innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
+      
+      const price = Number(priceInput.value) || 0; 
+      // ★ 一律10%の固定計算を廃止して、動的％に変更！
+      const comm = Math.floor(price * (actualFeePercent / 100)); 
+      
+      const profit = price - comm - fbaFee - cost; 
+      const margin = price > 0 ? Math.floor((profit / price) * 100) : 0;
+      profitSpan.style.color = profit >= 0 ? '#07A27B' : '#e53e3e'; 
+      profitSpan.innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
     };
 
     async function loadInventoryPrice() {
@@ -786,6 +796,7 @@
           rivalsHtml += `</select>`;
         }
         
+        // ★ inputタグの中の oninput に item.feePercent を追加！
         html += `
         <div class="card" style="display:flex; flex-direction:column; padding:12px; margin-bottom:10px;">
           <div style="display:flex; gap:12px; align-items:flex-start;">
@@ -805,7 +816,7 @@
               <span style="font-size:11px; font-weight:bold; color:#4a5568;">改定価格テスト:</span>
               <div style="display:flex; align-items:center;">
                 <span style="font-size:14px; font-weight:bold; color:#333; margin-right:4px;">¥</span>
-                <input type="number" id="sim_price_${uniqueId}" value="${item.price > 0 ? item.price : ''}" placeholder="0" onfocus="this.placeholder=''" onblur="this.placeholder='0'" oninput="calcSimProfit('${uniqueId}', ${item.cost}, ${item.fbaFee})" style="width:85px; text-align:right; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:15px; font-weight:900; color:#1a365d; outline:none;">
+                <input type="number" id="sim_price_${uniqueId}" value="${item.price > 0 ? item.price : ''}" placeholder="0" onfocus="this.placeholder=''" onblur="this.placeholder='0'" oninput="calcSimProfit('${uniqueId}', ${item.cost}, ${item.fbaFee}, ${item.feePercent || 10})" style="width:85px; text-align:right; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:15px; font-weight:900; color:#1a365d; outline:none;">
               </div>
             </div>
             <div style="display:flex; justify-content:space-between; font-size:10px; color:#718096; margin-bottom:8px;">
@@ -825,7 +836,8 @@
       });
       resDiv.innerHTML = html;
       
-      pageItems.forEach(function(item, index) { calcSimProfit("inv_" + start + "_" + index, item.cost, item.fbaFee); });
+      // ★ ここの初期計算呼び出しにも item.feePercent を追加！
+      pageItems.forEach(function(item, index) { calcSimProfit("inv_" + start + "_" + index, item.cost, item.fbaFee, item.feePercent || 10); });
       
       document.getElementById('price-page-info').innerText = `${invCurrentPage} / ${totalPages} ページ`;
       document.getElementById('price-btn-prev').disabled = (invCurrentPage === 1);
