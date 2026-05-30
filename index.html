@@ -291,6 +291,23 @@
     </div>
   </div>
 
+  <div id="confirmRegisterModal" class="modal">
+    <div class="modal-content">
+      <h3>🚀 仕入れ登録の最終確認</h3>
+      <div id="confirmDetails" style="font-size:13px; color:#4a5568; margin-bottom:12px; line-height:1.6; background:#f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;">
+        </div>
+
+      <label>仕入れ先を選択 (情報sheetから取得)</label>
+      <select id="supplierSelect" style="width:100%; padding:10px; margin-top:4px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:#fff; outline:none;">
+        <option value="">🔄 リストを読込中...</option>
+      </select>
+
+      <div class="modal-actions">
+        <button style="background:#e2e8f0; color:#4a5568;" onclick="closeConfirmModal()">キャンセル</button>
+        <button id="executeRegBtn" style="background:#1a365d; color:white;" onclick="executeRegistration()">この内容で登録</button>
+      </div>
+    </div>
+  </div>
   <script>
     const AppStorage = {
       get: function(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } },
@@ -710,26 +727,88 @@
       } catch (err) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>'; }
     }
     
-    // ★ 誤爆防止ポップアップ
-    window.sendToManager = async function(asin) {
+    // ★ 誤爆防止ポップアップ ＆ 仕入れ先選択モーダル
+    let pendingRegData = {};
+
+    window.sendToManager = function(asin) {
       const bPrice = document.getElementById("bPrice").value || 0;
       const ePrice = document.getElementById("ePrice").value || 0;
       const sPrice = document.getElementById("sPrice").value || 0;
 
-      const confirmMsg = `【仕入れ登録確認】\n\nASIN: ${asin}\n仕入値: ${bPrice}円\n経費/送料: ${ePrice}円\n販売値: ${sPrice}円\n\nこの内容で登録してよろしいですか？`;
-      if (!confirm(confirmMsg)) {
-        return;
-      }
+      // データを一時保存
+      pendingRegData = { asin: asin, buyPrice: bPrice, shipping: ePrice, sellPrice: sPrice };
 
-      const btn = document.getElementById("regBtn"); const ssUrl = AppStorage.get("sh_ssurl", "");
+      // 確認画面に文字をセット
+      document.getElementById("confirmDetails").innerHTML = 
+        `<b>ASIN:</b> ${asin}<br>
+         <b>仕入値:</b> ¥${Number(bPrice).toLocaleString()}<br>
+         <b>経費/送料:</b> ¥${Number(ePrice).toLocaleString()}<br>
+         <b>販売値:</b> ¥${Number(sPrice).toLocaleString()}`;
+
+      // モーダルを表示
+      document.getElementById("confirmRegisterModal").style.display = "flex";
+
+      // 裏でGASから仕入れ先リストを取ってくる
+      fetchSupplierList();
+    }
+
+    window.closeConfirmModal = function() {
+      document.getElementById("confirmRegisterModal").style.display = "none";
+    }
+
+    async function fetchSupplierList() {
+      const select = document.getElementById("supplierSelect");
+      const ssUrl = AppStorage.get("sh_ssurl", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
-      if (!ssUrl || !targetGasUrl) { openConfig(); return alert("⚙️設定から『販売管理シートURL』と『GAS URL』を登録してな！"); }
+
+      if (!ssUrl || !targetGasUrl) {
+        select.innerHTML = '<option value="">⚠️ 設定URLが未登録です</option>'; return;
+      }
+      try {
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getSuppliers', ssUrl: ssUrl }) });
+        const json = await res.json();
+        if (json.success && json.data.length > 0) {
+          select.innerHTML = '<option value="">選択してください</option>';
+          json.data.forEach(sup => { select.innerHTML += `<option value="${sup}">${sup}</option>`; });
+        } else {
+          select.innerHTML = '<option value="">⚠️ リストが見つかりません</option>';
+        }
+      } catch(err) { select.innerHTML = '<option value="">❌ 通信エラー</option>'; }
+    }
+
+    window.executeRegistration = async function() {
+      const supplier = document.getElementById("supplierSelect").value;
+      if (!supplier) { return alert("仕入れ先を選択してください！"); }
+
+      // 一時保存してた荷物に「仕入れ先」を追加！
+      pendingRegData.supplier = supplier;
+
+      const btn = document.getElementById("executeRegBtn");
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+
       btn.disabled = true; btn.innerHTML = "⌛ 登録中...";
       try {
-        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'register', ssUrl: ssUrl, data: { asin: asin, buyPrice: bPrice, shipping: ePrice, sellPrice: sPrice } }) });
+        const res = await fetch(targetGasUrl, { 
+          method: 'POST', 
+          body: JSON.stringify({ command: 'register', ssUrl: ssUrl, data: pendingRegData }) 
+        });
         const resJson = await res.json();
-        if (resJson.success) { btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！"; } else { alert("登録失敗: " + resJson.message); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
-      } catch(err) { alert("通信エラーが発生しました"); btn.disabled = false; btn.innerHTML = "🚀 再試行"; }
+        
+        if (resJson.success) {
+          btn.style.background = "#38a169"; btn.innerHTML = "✅ 登録完了！";
+          setTimeout(() => {
+            closeConfirmModal();
+            btn.style.background = "#1a365d"; btn.innerHTML = "この内容で登録"; btn.disabled = false;
+          }, 1500);
+        } else {
+          alert("登録失敗: " + resJson.message);
+          btn.disabled = false; btn.innerHTML = "🚀 再試行";
+        }
+      } catch(err) {
+        alert("通信エラーが発生しました");
+        btn.disabled = false; btn.innerHTML = "🚀 再試行";
+      }
     }
 
     // --- 📈 価格改定 ---
