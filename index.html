@@ -159,7 +159,7 @@
         <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
       </div>
       <div class="header-center">
-        <h1 id="headerTitle">SearchHub</h1>
+        <h1 id="headerTitle">SearchHub Mobile</h1>
         <div class="last-update" id="lastUpdate">待機中...</div>
       </div>
       <div class="header-right">
@@ -186,9 +186,9 @@
 
     <div class="dashboard-grid">
       <button class="dash-btn" onclick="openView('view-amazon')"><i class="fab fa-amazon" style="color:#ff9900;"></i>リサーチ</button>
+      <button class="dash-btn" onclick="openView('view-history')"><i class="fas fa-history" style="color:#4285f4;"></i>販売履歴リサーチ</button>
       <button class="dash-btn" onclick="openView('view-price')"><i class="fas fa-yen-sign" style="color:#1a365d;"></i>価格改定</button>
-      <button class="dash-btn" onclick="openView('view-history')"><i class="fas fa-history" style="color:#4285f4;"></i>販売履歴</button>
-      <button class="dash-btn" onclick="openView('view-monthly')"><i class="fas fa-chart-bar" style="color:#55a676;"></i>月別データ</button>
+      <button class="dash-btn" onclick="openView('view-monthly')"><i class="fas fa-chart-bar" style="color:#55a676;"></i>月別データ詳細</button>
       <button class="dash-btn" onclick="openView('view-watcher')"><i class="fas fa-eye" style="color:#07A27B;"></i>Watcher<span class="dash-dot" id="dash-dot-watcher"></span></button>
       <button class="dash-btn" onclick="openView('view-sniper')"><i class="fas fa-crosshairs" style="color:#e53e3e;"></i>Sniper<span class="dash-dot" id="dash-dot-sniper"></span></button>
     </div>
@@ -318,12 +318,12 @@
       <h3>⚙️ アプリ基本設定</h3>
       <label>Keepa APIキー</label>
       <input type="text" id="cfgKeepa" placeholder="あなたのKeepaAPIキー">
-      <label>販売管理シートのURL</label>
+      <label>SearchHub : ManagerのURL</label>
       <input type="url" id="cfgSsUrl" placeholder="https://docs.google.com/spreadsheets/...">
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
-      <label>S(スナイパー)側 GAS URL</label>
+      <label>SearchHub Sniper 極のGASURL</label>
       <input type="url" id="cfgSniperUrl" placeholder="https://script.google.com/macros/.../exec">
-      <label>10サイト側 GAS URL</label>
+      <label>SearchHub : WatcherのGASURL</label>
       <input type="url" id="cfg10SiteUrl" placeholder="https://script.google.com/macros/.../exec">
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
       <button onclick="enablePushNotifications(this)" style="width:100%; background:#ff9900; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; margin-top:10px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🔔 スマホに通知を送る許可をする</button>
@@ -561,7 +561,7 @@
       
       if(viewId === 'view-home') {
         backBtn.style.display = 'none';
-        titleEl.innerText = 'SearchHub';
+        titleEl.innerText = 'SearchHub Mobile'; // ← 変更！
       } else {
         backBtn.style.display = 'flex';
         if(viewId === 'view-sniper') titleEl.innerText = 'SearchHub Sniper';
@@ -569,7 +569,7 @@
         else if(viewId === 'view-amazon') titleEl.innerText = 'Amazon リサーチ';
         else if(viewId === 'view-price') titleEl.innerText = '価格改定';
         else if(viewId === 'view-history') titleEl.innerText = '販売履歴リサーチ';
-        else if(viewId === 'view-monthly') titleEl.innerText = '月別仕入・販売情報';
+        else if(viewId === 'view-monthly') titleEl.innerText = '月別データ詳細'; // ← 変更！
       }
 
       if (viewId === 'view-price') {
@@ -626,7 +626,7 @@
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
       
-      document.getElementById('headerTitle').innerText = 'SearchHub';
+      document.getElementById('headerTitle').innerText = 'SearchHub Mobile';
 
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
       
