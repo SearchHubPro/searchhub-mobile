@@ -15,6 +15,7 @@
   <link rel="apple-touch-icon-precomposed" href="https://i.ibb.co/Xrt68V7p/icon.png">
   <link rel="shortcut icon" href="https://i.ibb.co/Xrt68V7p/icon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Meiryo", sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; padding-bottom: 30px; }
@@ -39,14 +40,43 @@
     .view.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; }
-    .dash-btn { position: relative; background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 10px; text-align: center; color: #1a365d; font-weight: bold; font-size: 13px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;}
-    .dash-btn:active { transform: scale(0.95); background: #f8fafc; }
-    .dash-btn i { font-size: 32px; color: #2b6cb0; }
-    .dash-btn.btn-sniper i { color: #e53e3e; }
-    .dash-btn.btn-watcher i { color: #07A27B; }
-    .dash-btn.btn-amazon i { color: #ff9900; }
+    /* --- 🆕 新ホーム画面（グラフ＆ダッシュボード） --- */
+    .graph-card { background: #ffffff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin: 16px; border: 1px solid #d5d9d9; min-height: 290px; }
+    .home-top-tabs { display: flex; justify-content: flex-start; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #d5d9d9; }
+    .home-tab-btn { padding: 8px 12px; border: none; font-size: 13px; font-weight: bold; background: transparent; color: #565959; cursor: pointer; border-bottom: 3px solid transparent; flex: 1; text-align: center; }
+    .home-tab-btn.active { color: #008296; border-bottom: 3px solid #008296; }
+    .summary-header { margin-bottom: 16px; height: 50px; }
+    .summary-date { font-size: 11px; color: #565959; margin-bottom: 4px; font-weight:bold; }
+    .summary-values { display: flex; gap: 20px; align-items: flex-end; }
+    .summary-box .summary-label { font-size: 10px; color: #565959; margin-bottom: 2px; }
+    .summary-box .summary-value { font-size: 20px; font-weight: 900; color: #0f1111; line-height: 1; }
+    .summary-box .summary-value.highlight { color: #E47911; }
+    .chart-wrapper { height: 200px; width: 100%; position: relative; }
     
+    #homeMonthTabsArea { display: flex; overflow-x: auto; gap: 8px; margin-top: 16px; padding-bottom: 8px; }
+    #homeMonthTabsArea::-webkit-scrollbar { display: none; }
+    .home-month-btn { padding: 6px 16px; border: 1px solid #d5d9d9; border-radius: 20px; background: #ffffff; color: #0f1111; font-size: 12px; white-space: nowrap; cursor: pointer; }
+    .home-month-btn.active { background: #f3fbfd; border-color: #008296; color: #008296; font-weight: bold; }
+
+    /* 円グラフ（回転率） */
+    .turnover-container { display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; align-items: center; height: 210px; }
+    .metrics-list { display: flex; flex-direction: column; gap: 6px; }
+    .metric-item { display: flex; justify-content: space-between; font-size: 11px; color: #565959; border-bottom: 1px dashed #eee; padding-bottom: 2px; }
+    .metric-value { font-weight: bold; color: #0f1111; }
+    .metric-value.profit { color: #E47911; }
+    .chart-box { position: relative; display: flex; justify-content: center; align-items: center; }
+    .circular-chart { width: 140px; height: 140px; }
+    .circle-bg { fill: none; stroke: #e6e6e6; stroke-width: 3.8; }
+    .circle-base { fill: none; stroke: #008296; stroke-width: 3.8; stroke-linecap: round; transition: stroke-dasharray 1s ease-out; }
+    .circle-over { fill: none; stroke: #E47911; stroke-width: 3.8; stroke-linecap: round; transition: stroke-dasharray 1s ease-out 0.5s; }
+    .percentage { position: absolute; font-family: 'Roboto', sans-serif; font-size: 28px; font-weight: 900; color: #0f1111; display: flex; flex-direction: column; align-items: center; }
+    .percentage span { font-size: 10px; color: #565959; margin-top: -5px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+
+    /* 下部ボタン群のリファイン */
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 20px 16px; }
+    .dash-btn { position: relative; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 10px; text-align: center; color: #1a365d; font-weight: bold; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;}
+    .dash-btn:active { transform: scale(0.95); background: #f8fafc; }
+    .dash-btn i { font-size: 26px; }
     .dash-dot { display: none; position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; background-color: #e53e3e; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid white; }
     .dash-dot.active { display: block; animation: pop 0.3s ease; }
 
@@ -55,7 +85,6 @@
     .tabs { display: flex; white-space: nowrap; padding: 0 4px; }
     .tab-btn { position: relative; padding: 12px 14px; background: none; border: none; font-size: 12px; font-weight: bold; color: #718096; border-bottom: 3px solid transparent; outline: none; flex-shrink: 0; }
     .tab-btn.active { color: #2b6cb0; border-bottom-color: #2b6cb0; background-color: #ebf8ff; }
-    
     .tab-dot { display: none; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background-color: #e53e3e; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
     .tab-dot.active { display: block; animation: pop 0.3s ease; }
     @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
@@ -130,7 +159,7 @@
         <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
       </div>
       <div class="header-center">
-        <h1 id="headerTitle">SearchHub Mobile</h1>
+        <h1 id="headerTitle">SearchHub</h1>
         <div class="last-update" id="lastUpdate">待機中...</div>
       </div>
       <div class="header-right">
@@ -141,13 +170,29 @@
   </div>
 
   <div id="view-home" class="view active">
+    <div class="graph-card">
+      <div class="home-top-tabs">
+        <button class="home-tab-btn active" onclick="switchHomeTab('turnover', this)">回転率</button>
+        <button class="home-tab-btn" onclick="switchHomeTab('purchase', this)">仕入</button>
+        <button class="home-tab-btn" onclick="switchHomeTab('sales', this)">販売</button>
+      </div>
+      
+      <div id="homeGraphContent"></div>
+      
+      <div id="homeMonthTabsArea" style="display:none;">
+        <button class="home-month-btn active" onclick="switchHomeMonth('2026/05', this)">2026/05</button>
+        <button class="home-month-btn" onclick="switchHomeMonth('2026/04', this)">2026/04</button>
+        <button class="home-month-btn" onclick="switchHomeMonth('2026/03', this)">2026/03</button>
+      </div>
+    </div>
+
     <div class="dashboard-grid">
-      <button class="dash-btn btn-amazon" onclick="openView('view-amazon')"><i class="fab fa-amazon"></i>Amazon<br>リサーチ</button>
-      <button class="dash-btn" onclick="openView('view-price')"><i class="fas fa-yen-sign"></i>価格改定</button>
-      <button class="dash-btn" onclick="openView('view-history')"><i class="fas fa-history"></i>販売履歴<br>リサーチ</button>
-      <button class="dash-btn" onclick="openView('view-monthly')"><i class="fas fa-chart-bar"></i>月別仕入<br>販売情報</button>
-      <button class="dash-btn btn-watcher" onclick="openView('view-watcher')"><i class="fas fa-eye"></i>SearchHub<br>Watcher<span class="dash-dot" id="dash-dot-watcher"></span></button>
-      <button class="dash-btn btn-sniper" onclick="openView('view-sniper')"><i class="fas fa-crosshairs"></i>SearchHub<br>Sniper<span class="dash-dot" id="dash-dot-sniper"></span></button>
+      <button class="dash-btn" onclick="openView('view-amazon')"><i class="fab fa-amazon" style="color:#ff9900;"></i>リサーチ</button>
+      <button class="dash-btn" onclick="openView('view-price')"><i class="fas fa-yen-sign" style="color:#1a365d;"></i>価格改定</button>
+      <button class="dash-btn" onclick="openView('view-history')"><i class="fas fa-history" style="color:#4285f4;"></i>販売履歴</button>
+      <button class="dash-btn" onclick="openView('view-monthly')"><i class="fas fa-chart-bar" style="color:#55a676;"></i>月別データ</button>
+      <button class="dash-btn" onclick="openView('view-watcher')"><i class="fas fa-eye" style="color:#07A27B;"></i>Watcher<span class="dash-dot" id="dash-dot-watcher"></span></button>
+      <button class="dash-btn" onclick="openView('view-sniper')"><i class="fas fa-crosshairs" style="color:#e53e3e;"></i>Sniper<span class="dash-dot" id="dash-dot-sniper"></span></button>
     </div>
   </div>
 
@@ -308,6 +353,7 @@
       </div>
     </div>
   </div>
+
   <script>
     const AppStorage = {
       get: function(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } },
@@ -337,6 +383,129 @@
     let monthlyCurrentPage = 1;
     let currentMonthlyTab = 'monthly-purchase';
 
+    // --- 🆕 ホームグラフ用変数とダミーデータ ---
+    let homeChartInstance = null;
+    let currentHomeMode = 'turnover';
+    let currentHomeMonth = '2026/05';
+
+    const homeDummyData = {
+      purchase: { labelBar: '日別 仕入額', labelLine: '累計 想定利益', barColor: '#008296', lineColor: '#E47911',
+                  bars: Array.from({length: 31}, () => Math.random() * 50000), lines: Array.from({length: 31}, (_, i) => i * 15000) },
+      sales: { labelBar: '日別 販売額', labelLine: '累計 確定利益', barColor: '#008296', lineColor: '#38a169',
+               bars: Array.from({length: 31}, () => Math.random() * 70000), lines: Array.from({length: 31}, (_, i) => i * 18000) },
+      turnover: { value: 215, inventory: 450000, sold: 967500 }
+    };
+
+    function updateHomeView() {
+      const contentArea = document.getElementById('homeGraphContent');
+      const monthArea = document.getElementById('homeMonthTabsArea');
+      
+      if (currentHomeMode === 'turnover') {
+        monthArea.style.display = 'none';
+        contentArea.innerHTML = `
+          <div class="turnover-container">
+            <div class="metrics-list">
+              <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #008296;">本日(5/30)の仕入れ</div>
+              <div class="metric-item"><span>仕入れ額</span><span class="metric-value">¥82,400</span></div>
+              <div class="metric-item"><span>想定販売額</span><span class="metric-value">¥124,800</span></div>
+              <div class="metric-item"><span>仕入れ個数</span><span class="metric-value">12 個</span></div>
+              <div class="metric-item"><span>想定利益額</span><span class="metric-value profit">¥28,300</span></div>
+              <div class="metric-item"><span>利益率</span><span class="metric-value">22.6 %</span></div>
+              <div class="metric-item"><span>ROI</span><span class="metric-value">34.3 %</span></div>
+            </div>
+            <div class="chart-box">
+              <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle-base" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle-over" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="percentage">
+                <span id="turnoverText" style="font-size: 28px; color: #0f1111; margin:0;">0%</span>
+                <span>回転率</span>
+              </div>
+            </div>
+          </div>
+        `;
+        setTimeout(() => { drawTurnoverChart(homeDummyData.turnover.value); }, 50);
+      } else {
+        monthArea.style.display = 'flex';
+        const config = homeDummyData[currentHomeMode];
+        contentArea.innerHTML = `
+          <div class="summary-header">
+            <div class="summary-date">${currentHomeMonth} 時点</div>
+            <div class="summary-values">
+              <div class="summary-box">
+                <div class="summary-label">合計 ${currentHomeMode==='purchase'?'仕入':'販売'}</div>
+                <div class="summary-value">¥1,250,000</div>
+              </div>
+              <div class="summary-box">
+                <div class="summary-label">累計 利益</div>
+                <div class="summary-value highlight">¥380,000</div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="mainChart"></canvas>
+          </div>
+        `;
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        const days = Array.from({length: 31}, (_, i) => i + 1);
+        if (homeChartInstance) { homeChartInstance.destroy(); }
+        homeChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: days,
+            datasets: [
+              { type: 'line', label: config.labelLine, data: config.lines, borderColor: config.lineColor, backgroundColor: config.lineColor, yAxisID: 'y1', pointRadius: 1, tension: 0.2, borderWidth: 2, order: 1 },
+              { type: 'bar', label: config.labelBar, data: config.bars, backgroundColor: config.barColor, yAxisID: 'y', borderRadius: 2, order: 2 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { maxTicksLimit: 15, font: { size: 10 } } },
+              y: { position: 'left', beginAtZero: true, grid: { color: '#f0f2f2' }, ticks: { color: config.barColor, font: { size: 10 }, callback: v => '¥'+v.toLocaleString() }, title: { display: true, text: config.labelBar, color: config.barColor, font: { size: 10, weight: 'bold' } } },
+              y1: { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { color: config.lineColor, font: { size: 10 }, callback: v => '¥'+v.toLocaleString() }, title: { display: true, text: config.labelLine, color: config.lineColor, font: { size: 10, weight: 'bold' } } }
+            }
+          }
+        });
+      }
+    }
+
+    function switchHomeTab(mode, btn) {
+      document.querySelectorAll('.home-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentHomeMode = mode;
+      updateHomeView();
+    }
+
+    function switchHomeMonth(month, btn) {
+      document.querySelectorAll('.home-month-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentHomeMonth = month;
+      updateHomeView();
+    }
+
+    function drawTurnoverChart(percent) {
+      const baseCircle = document.querySelector('.circle-base');
+      const overCircle = document.querySelector('.circle-over');
+      const textLabel = document.getElementById('turnoverText');
+      if(!baseCircle) return;
+      textLabel.innerText = percent + '%';
+      if (percent <= 100) {
+          baseCircle.setAttribute('stroke-dasharray', `${percent}, 100`);
+          overCircle.setAttribute('stroke-dasharray', `0, 100`);
+      } else {
+          baseCircle.setAttribute('stroke-dasharray', `100, 100`);
+          let overVal = percent % 100;
+          if (overVal === 0) overVal = 100;
+          overCircle.setAttribute('stroke-dasharray', `${overVal}, 100`);
+      }
+    }
+    // --- グラフ用スクリプトここまで ---
+
     function hideLoader() {
       const loader = document.getElementById("loader");
       if (loader && loader.style.display !== "none") {
@@ -355,7 +524,7 @@
       
       if(viewId === 'view-home') {
         backBtn.style.display = 'none';
-        titleEl.innerText = 'SearchHub Mobile';
+        titleEl.innerText = 'SearchHub';
       } else {
         backBtn.style.display = 'flex';
         if(viewId === 'view-sniper') titleEl.innerText = 'SearchHub Sniper';
@@ -394,7 +563,6 @@
       if (totalSniper > 0) dashDotSniper.classList.add('active'); else dashDotSniper.classList.remove('active');
       if (totalWatcher > 0) dashDotWatcher.classList.add('active'); else dashDotWatcher.classList.remove('active');
 
-      // ★ スマホのアイコンに通知数（バッジ）を表示（Sniperの未読数のみ）
       if ('setAppBadge' in navigator) {
         if (totalSniper > 0) {
           navigator.setAppBadge(totalSniper).catch(e => console.log('Badge error:', e));
@@ -416,11 +584,15 @@
       recalcBadges(); 
     }
 
-    // ★ 起動時と裏から戻ってきた時の「自動リロード」を確実に発動
     document.addEventListener("DOMContentLoaded", function() {
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
+      
+      // 🆕 ホームグラフの初期化
+      document.getElementById('headerTitle').innerText = 'SearchHub';
+      updateHomeView();
+
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
       setTimeout(() => { hideLoader(); }, 8000);
       if(!urlSniper && !url10) {
@@ -589,7 +761,6 @@
       } catch(err) { resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">❌ 通信エラーが発生しました</div>'; }
     }
 
-    // --- 🎯 Amazon Keepa リサーチ ---
     function jumpToAmazonResearch(asin, title) { document.getElementById("amazonKw").value = asin; window.scrollTo({ top: 0, behavior: 'smooth' }); runAmazonResearch(title); }
     function copyAsin(asin) { if (asin && asin !== "B000000000") { navigator.clipboard.writeText(asin).then(() => { const icon = document.getElementById('copyIcon'); if(icon) { icon.className = "fas fa-check text-green-500 text-[12px] ml-1"; setTimeout(() => { icon.className = "far fa-copy text-gray-400 text-[12px] ml-1"; }, 1500); } }); } }
     function searchAmazonKeyword() { let modelText = document.getElementById('itemModelText') ? document.getElementById('itemModelText').innerText.trim() : ''; if (!modelText || modelText === '-') modelText = document.getElementById('amazonKw').value.trim(); if (!modelText) return alert("検索するキーワードがありません。"); window.open(`https://www.google.com/search?q=${encodeURIComponent(modelText + ' amazon')}`, '_blank'); }
@@ -729,7 +900,6 @@
       } catch (err) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>'; }
     }
     
-    // ★ 誤爆防止ポップアップ ＆ 仕入れ先選択モーダル
     let pendingRegData = {};
 
     window.sendToManager = function(asin) {
@@ -738,25 +908,21 @@
       const sPrice = document.getElementById("sPrice").value || 0;
 
       pendingRegData = { 
-  asin: asin, 
-  buyPrice: bPrice, 
-  shipping: ePrice, 
-  sellPrice: sPrice,
-  title: window.tmpTitle || "",
-  model: window.tmpModel || ""
-};
+        asin: asin, 
+        buyPrice: bPrice, 
+        shipping: ePrice, 
+        sellPrice: sPrice,
+        title: window.tmpTitle || "",
+        model: window.tmpModel || ""
+      };
 
-      // 確認画面に文字をセット
       document.getElementById("confirmDetails").innerHTML = 
         `<b>ASIN:</b> ${asin}<br>
          <b>仕入値:</b> ¥${Number(bPrice).toLocaleString()}<br>
          <b>経費/送料:</b> ¥${Number(ePrice).toLocaleString()}<br>
          <b>販売値:</b> ¥${Number(sPrice).toLocaleString()}`;
 
-      // モーダルを表示
       document.getElementById("confirmRegisterModal").style.display = "flex";
-
-      // 裏でGASから仕入れ先リストを取ってくる
       fetchSupplierList();
     }
 
@@ -788,7 +954,6 @@
       const supplier = document.getElementById("supplierSelect").value;
       if (!supplier) { return alert("仕入れ先を選択してください！"); }
 
-      // 一時保存してた荷物に「仕入れ先」を追加！
       pendingRegData.supplier = supplier;
 
       const btn = document.getElementById("executeRegBtn");
@@ -819,19 +984,14 @@
       }
     }
 
-    // --- 📈 価格改定 ---
     window.calcSimProfit = function(id, cost, fbaFee, feePercent) {
-      // ★ 引数に feePercent を追加。データがなければ10%で計算する保険付き
       const actualFeePercent = feePercent || 10; 
-      
       const priceInput = document.getElementById('sim_price_' + id); 
       const profitSpan = document.getElementById('sim_profit_' + id);
       if(!priceInput || !profitSpan) return;
       
       const price = Number(priceInput.value) || 0; 
-      // ★ 一律10%の固定計算を廃止して、動的％に変更！
       const comm = Math.floor(price * (actualFeePercent / 100)); 
-      
       const profit = price - comm - fbaFee - cost; 
       const margin = price > 0 ? Math.floor((profit / price) * 100) : 0;
       profitSpan.style.color = profit >= 0 ? '#07A27B' : '#e53e3e'; 
@@ -886,7 +1046,6 @@
           rivalsHtml += `</select>`;
         }
         
-        // ★ inputタグの中の oninput に item.feePercent を追加！
         html += `
         <div class="card" style="display:flex; flex-direction:column; padding:12px; margin-bottom:10px;">
           <div style="display:flex; gap:12px; align-items:flex-start;">
@@ -926,7 +1085,6 @@
       });
       resDiv.innerHTML = html;
       
-      // ★ ここの初期計算呼び出しにも item.feePercent を追加！
       pageItems.forEach(function(item, index) { calcSimProfit("inv_" + start + "_" + index, item.cost, item.fbaFee, item.feePercent || 10); });
       
       document.getElementById('price-page-info').innerText = `${invCurrentPage} / ${totalPages} ページ`;
@@ -936,7 +1094,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // --- 📊 月別仕入・販売データ ---
     async function loadMonthlyData() {
       const ssUrl = AppStorage.get("sh_ssurl", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
