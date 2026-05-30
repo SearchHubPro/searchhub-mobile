@@ -74,7 +74,8 @@
 
     /* 下部ボタン群のリファイン */
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 20px 16px; }
-    .dash-btn { position: relative; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 10px; text-align: center; color: #1a365d; font-weight: bold; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;}
+    /* 💡 1列表示で文字が崩れないように white-space: nowrap; を追加！ */
+    .dash-btn { position: relative; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 10px; text-align: center; color: #1a365d; font-weight: bold; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;}
     .dash-btn:active { transform: scale(0.95); background: #f8fafc; }
     .dash-btn i { font-size: 26px; }
     .dash-dot { display: none; position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; background-color: #e53e3e; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid white; }
@@ -142,9 +143,13 @@
     .modal-content input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
     .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
     .modal-actions button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
+    
+    /* 🚀 ステップ②: 引っ張って更新の見た目追加 */
+    #ptr-indicator { position: fixed; top: -50px; left: 0; width: 100%; text-align: center; z-index: 1000; transition: top 0.3s; font-weight: bold; color: #008296; font-size: 13px; background: rgba(255,255,255,0.95); padding: 10px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 0 0 12px 12px; pointer-events: none;}
   </style>
 </head>
 <body>
+  <div id="ptr-indicator">⬇️ 引っ張って更新...</div>
 
   <div id="loader">
     <img class="splash-img" src="https://i.ibb.co/6RYMyGPS/Chat-GPT-Image-2026-5-25-20-55-41.png" alt="Splash">
@@ -318,6 +323,7 @@
       <h3>⚙️ アプリ基本設定</h3>
       <label>Keepa APIキー</label>
       <input type="text" id="cfgKeepa" placeholder="あなたのKeepaAPIキー">
+      
       <label>SearchHub : ManagerのURL</label>
       <input type="url" id="cfgSsUrl" placeholder="https://docs.google.com/spreadsheets/...">
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
@@ -326,6 +332,7 @@
       <label>SearchHub : WatcherのGASURL</label>
       <input type="url" id="cfg10SiteUrl" placeholder="https://script.google.com/macros/.../exec">
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
+      
       <button onclick="enablePushNotifications(this)" style="width:100%; background:#ff9900; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; margin-top:10px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🔔 スマホに通知を送る許可をする</button>
       <div class="modal-actions">
         <button style="background:#e2e8f0; color:#4a5568;" onclick="closeConfig()">閉じる</button>
@@ -368,6 +375,9 @@
     const sniperOrder = ['sniper-mercari', 'sniper-paypay', 'sniper-offmall'];
     const watcherOrder = ['watcher-mercari', 'watcher-paypay', 'watcher-yahoo', 'watcher-offmall', 'watcher-2nd', 'watcher-rakuma', 'watcher-surugaya', 'watcher-yshopping', 'watcher-aupay', 'watcher-trefac'];
     const monthlyOrder = ['monthly-purchase', 'monthly-sales']; 
+    
+    // 🚀 ステップ②: グラフタブの左右スワイプ対応のための配列
+    const homeOrder = ['turnover', 'purchase', 'sales']; 
 
     let currentActiveView = 'view-home';
     let globalViewedLinks = [];
@@ -379,7 +389,6 @@
     let monthlyCurrentPage = 1;
     let currentMonthlyTab = 'monthly-purchase';
 
-    // --- 🆕 ホームグラフ用変数 ---
     let homeChartInstance = null;
     let currentHomeMode = 'turnover';
     let currentHomeMonth = '';
@@ -408,7 +417,6 @@
           if (homeData.availableMonths.length > 0) {
             currentHomeMonth = homeData.availableMonths[0];
             
-            // 月選択タブを生成
             const monthArea = document.getElementById('homeMonthTabsArea');
             monthArea.innerHTML = '';
             homeData.availableMonths.forEach(m => {
@@ -541,7 +549,6 @@
           overCircle.setAttribute('stroke-dasharray', `${overVal}, 100`);
       }
     }
-    // --- グラフ用スクリプトここまで ---
 
     function hideLoader() {
       const loader = document.getElementById("loader");
@@ -559,9 +566,10 @@
       const titleEl = document.getElementById('headerTitle');
       const backBtn = document.getElementById('backBtn');
       
+      // 🚀 ステップ①: 画面切り替え時のタイトルを「SearchHub Mobile」等に変更
       if(viewId === 'view-home') {
         backBtn.style.display = 'none';
-        titleEl.innerText = 'SearchHub Mobile'; // ← 変更！
+        titleEl.innerText = 'SearchHub Mobile'; 
       } else {
         backBtn.style.display = 'flex';
         if(viewId === 'view-sniper') titleEl.innerText = 'SearchHub Sniper';
@@ -569,7 +577,7 @@
         else if(viewId === 'view-amazon') titleEl.innerText = 'Amazon リサーチ';
         else if(viewId === 'view-price') titleEl.innerText = '価格改定';
         else if(viewId === 'view-history') titleEl.innerText = '販売履歴リサーチ';
-        else if(viewId === 'view-monthly') titleEl.innerText = '月別データ詳細'; // ← 変更！
+        else if(viewId === 'view-monthly') titleEl.innerText = '月別データ詳細'; 
       }
 
       if (viewId === 'view-price') {
@@ -626,11 +634,11 @@
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
       
+      // 🚀 ステップ①: 初期のタイトルを「SearchHub Mobile」に
       document.getElementById('headerTitle').innerText = 'SearchHub Mobile';
 
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
       
-      // 🆕 起動時にダッシュボードのデータも一緒に取得する
       if(urlSniper || url10) { fetchDashboardData(); }
 
       setTimeout(() => { hideLoader(); }, 8000);
@@ -647,7 +655,7 @@
         const url10 = AppStorage.get("sh_tensite_url", "");
         if (urlSniper || url10) {
           syncPatrolData();
-          fetchDashboardData(); // バックグラウンドから戻った時もグラフ更新
+          fetchDashboardData(); 
         }
       }
     });
@@ -726,20 +734,23 @@
         else { updateDiscordBtnUI(currentStatus); alert("設定の同期に失敗したわ。"); }
       } catch(e) { updateDiscordBtnUI(currentStatus); alert("通信エラーが発生しました。"); }
     }
+    
+    // 🚀 ステップ②: グラフの左右スワイプ対応版 setupSwipe & swipeToTab
     function setupSwipe() {
       let touchStartX = 0; let touchStartY = 0;
-      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly')];
+      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly'), document.getElementById('view-home')];
       areas.forEach(contentArea => {
         if(!contentArea) return;
         contentArea.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive: true});
         contentArea.addEventListener('touchend', function(e) {
-          if (currentActiveView !== 'view-sniper' && currentActiveView !== 'view-watcher' && currentActiveView !== 'view-monthly') return;
+          if (currentActiveView !== 'view-sniper' && currentActiveView !== 'view-watcher' && currentActiveView !== 'view-monthly' && currentActiveView !== 'view-home') return;
           const diffX = e.changedTouches[0].clientX - touchStartX; const diffY = e.changedTouches[0].clientY - touchStartY;
           if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
             let order, activeContentId;
             if (currentActiveView === 'view-sniper') { order = sniperOrder; activeContentId = document.querySelector(`#view-sniper .tab-content.active`).id; }
             else if (currentActiveView === 'view-watcher') { order = watcherOrder; activeContentId = document.querySelector(`#view-watcher .tab-content.active`).id; }
             else if (currentActiveView === 'view-monthly') { order = monthlyOrder; activeContentId = currentMonthlyTab; }
+            else if (currentActiveView === 'view-home') { order = homeOrder; activeContentId = currentHomeMode; }
             let currentIndex = order.indexOf(activeContentId);
             if (diffX < 0 && currentIndex < order.length - 1) swipeToTab(order[currentIndex + 1], currentActiveView);
             else if (diffX > 0 && currentIndex > 0) swipeToTab(order[currentIndex - 1], currentActiveView);
@@ -747,14 +758,19 @@
         }, {passive: true});
       });
     }
+
     function swipeToTab(targetId, viewId) {
       if (viewId === 'view-monthly') {
         const btn = document.getElementById("btn-" + targetId); if (btn) switchMonthlyTab(targetId, btn);
+      } else if (viewId === 'view-home') {
+        const btn = document.querySelector(`.home-tab-btn[onclick*="'${targetId}'"]`);
+        if (btn) switchHomeTab(targetId, btn);
       } else {
         const btn = document.querySelector(`button[onclick*="'${targetId}'"]`);
         if (btn) { switchTab(targetId, btn, viewId); btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
       }
     }
+
     function switchTab(targetId, btn, viewId) {
       document.querySelectorAll(`#${viewId} .tab-content`).forEach(c => c.classList.remove('active'));
       document.querySelectorAll(`#${viewId} .tab-btn`).forEach(b => b.classList.remove('active'));
@@ -1286,6 +1302,39 @@
       pagiDiv.style.display = (totalPages > 1) ? 'flex' : 'none';
       document.getElementById('monthly-search-kw').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
+    // 🚀 ステップ②: 下に引っ張って更新 (Pull to Refresh) の処理
+    let ptrStartY = 0; let ptrCurrentY = 0; let ptrIsPulling = false;
+    document.addEventListener('touchstart', e => {
+      if (window.scrollY <= 0) { ptrStartY = e.touches[0].clientY; ptrIsPulling = true; }
+    }, {passive: true});
+    document.addEventListener('touchmove', e => {
+      if (!ptrIsPulling) return;
+      ptrCurrentY = e.touches[0].clientY;
+      let diff = ptrCurrentY - ptrStartY;
+      if (diff > 0 && window.scrollY <= 0) {
+        const ptrEl = document.getElementById('ptr-indicator');
+        if (diff > 80) diff = 80; 
+        ptrEl.style.top = (diff - 40) + 'px';
+        if (diff > 60) ptrEl.innerText = "🔄 離して更新";
+        else ptrEl.innerText = "⬇️ 引っ張って更新...";
+      }
+    }, {passive: true});
+    document.addEventListener('touchend', e => {
+      if (!ptrIsPulling) return;
+      ptrIsPulling = false;
+      let diff = ptrCurrentY - ptrStartY;
+      const ptrEl = document.getElementById('ptr-indicator');
+      if (diff > 60 && window.scrollY <= 0) {
+        ptrEl.style.top = '60px'; 
+        ptrEl.innerText = "⌛ 更新中...";
+        syncPatrolData(); 
+        fetchDashboardData();
+        setTimeout(() => { ptrEl.style.top = '-50px'; }, 2000); 
+      } else {
+        ptrEl.style.top = '-50px'; 
+      }
+    }, {passive: true});
   </script>
 
   <script type="module">
