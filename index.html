@@ -40,7 +40,7 @@
     .view.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* --- 🆕 新ホーム画面（グラフ＆ダッシュボード） --- */
+    /* --- 新ホーム画面（グラフ＆ダッシュボード） --- */
     .graph-card { background: #ffffff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin: 16px; border: 1px solid #d5d9d9; min-height: 290px; }
     .home-top-tabs { display: flex; justify-content: flex-start; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #d5d9d9; }
     .home-tab-btn { padding: 8px 12px; border: none; font-size: 13px; font-weight: bold; background: transparent; color: #565959; cursor: pointer; border-bottom: 3px solid transparent; flex: 1; text-align: center; }
@@ -177,13 +177,11 @@
         <button class="home-tab-btn" onclick="switchHomeTab('sales', this)">販売</button>
       </div>
       
-      <div id="homeGraphContent"></div>
-      
-      <div id="homeMonthTabsArea" style="display:none;">
-        <button class="home-month-btn active" onclick="switchHomeMonth('2026/05', this)">2026/05</button>
-        <button class="home-month-btn" onclick="switchHomeMonth('2026/04', this)">2026/04</button>
-        <button class="home-month-btn" onclick="switchHomeMonth('2026/03', this)">2026/03</button>
+      <div id="homeGraphContent">
+        <div style="text-align:center; padding:30px; color:#a0aec0; font-size:12px;">⌛ データを同期中...</div>
       </div>
+      
+      <div id="homeMonthTabsArea" style="display:none;"></div>
     </div>
 
     <div class="dashboard-grid">
@@ -374,27 +372,59 @@
     let currentActiveView = 'view-home';
     let globalViewedLinks = [];
     let globalHistoryData = {};
-    
     let globalInventoryData = [];
     let invCurrentPage = 1;
     const ITEMS_PER_PAGE = 20;
-    
     let globalMonthlyData = { purchase: [], sales: [] };
     let monthlyCurrentPage = 1;
     let currentMonthlyTab = 'monthly-purchase';
 
-    // --- 🆕 ホームグラフ用変数とダミーデータ ---
+    // --- 🆕 ホームグラフ用変数 ---
     let homeChartInstance = null;
     let currentHomeMode = 'turnover';
-    let currentHomeMonth = '2026/05';
-
-    const homeDummyData = {
-      purchase: { labelBar: '日別 仕入額', labelLine: '累計 想定利益', barColor: '#008296', lineColor: '#E47911',
-                  bars: Array.from({length: 31}, () => Math.random() * 50000), lines: Array.from({length: 31}, (_, i) => i * 15000) },
-      sales: { labelBar: '日別 販売額', labelLine: '累計 確定利益', barColor: '#008296', lineColor: '#38a169',
-               bars: Array.from({length: 31}, () => Math.random() * 70000), lines: Array.from({length: 31}, (_, i) => i * 18000) },
-      turnover: { value: 215, inventory: 450000, sold: 967500 }
+    let currentHomeMonth = '';
+    let homeData = {
+      availableMonths: [],
+      today: { dateStr: '--/--', buyAmount: 0, estSales: 0, buyCount: 0, estProfit: 0, profitRate: 0, roi: 0 },
+      turnover: { value: 0, inventory: 0 },
+      monthly: {}
     };
+
+    const chartConfig = {
+      purchase: { labelBar: '日別 仕入額', labelLine: '累計 想定利益', barColor: '#008296', lineColor: '#E47911' },
+      sales: { labelBar: '日別 販売額', labelLine: '累計 確定利益', barColor: '#008296', lineColor: '#38a169' }
+    };
+
+    async function fetchDashboardData() {
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      if (!ssUrl || !targetGasUrl) return;
+
+      try {
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getDashboardData', ssUrl: ssUrl }) });
+        const json = await res.json();
+        if (json.success && json.data) {
+          homeData = json.data;
+          if (homeData.availableMonths.length > 0) {
+            currentHomeMonth = homeData.availableMonths[0];
+            
+            // 月選択タブを生成
+            const monthArea = document.getElementById('homeMonthTabsArea');
+            monthArea.innerHTML = '';
+            homeData.availableMonths.forEach(m => {
+              const btn = document.createElement('button');
+              btn.className = `home-month-btn ${m === currentHomeMonth ? 'active' : ''}`;
+              btn.innerText = m;
+              btn.onclick = function() { switchHomeMonth(m, this); };
+              monthArea.appendChild(btn);
+            });
+          }
+          updateHomeView();
+        }
+      } catch(err) {
+        console.error("Dashboard fetch error", err);
+      }
+    }
 
     function updateHomeView() {
       const contentArea = document.getElementById('homeGraphContent');
@@ -405,13 +435,13 @@
         contentArea.innerHTML = `
           <div class="turnover-container">
             <div class="metrics-list">
-              <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #008296;">本日(5/30)の仕入れ</div>
-              <div class="metric-item"><span>仕入れ額</span><span class="metric-value">¥82,400</span></div>
-              <div class="metric-item"><span>想定販売額</span><span class="metric-value">¥124,800</span></div>
-              <div class="metric-item"><span>仕入れ個数</span><span class="metric-value">12 個</span></div>
-              <div class="metric-item"><span>想定利益額</span><span class="metric-value profit">¥28,300</span></div>
-              <div class="metric-item"><span>利益率</span><span class="metric-value">22.6 %</span></div>
-              <div class="metric-item"><span>ROI</span><span class="metric-value">34.3 %</span></div>
+              <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #008296;">本日(${homeData.today.dateStr})の仕入れ</div>
+              <div class="metric-item"><span>仕入れ額</span><span class="metric-value">¥${homeData.today.buyAmount.toLocaleString()}</span></div>
+              <div class="metric-item"><span>想定販売額</span><span class="metric-value">¥${homeData.today.estSales.toLocaleString()}</span></div>
+              <div class="metric-item"><span>仕入れ個数</span><span class="metric-value">${homeData.today.buyCount} 個</span></div>
+              <div class="metric-item"><span>想定利益額</span><span class="metric-value profit">¥${homeData.today.estProfit.toLocaleString()}</span></div>
+              <div class="metric-item"><span>利益率</span><span class="metric-value">${homeData.today.profitRate} %</span></div>
+              <div class="metric-item"><span>ROI</span><span class="metric-value">${homeData.today.roi} %</span></div>
             </div>
             <div class="chart-box">
               <svg viewBox="0 0 36 36" class="circular-chart">
@@ -426,21 +456,28 @@
             </div>
           </div>
         `;
-        setTimeout(() => { drawTurnoverChart(homeDummyData.turnover.value); }, 50);
+        setTimeout(() => { drawTurnoverChart(homeData.turnover.value); }, 50);
       } else {
         monthArea.style.display = 'flex';
-        const config = homeDummyData[currentHomeMode];
+        const config = chartConfig[currentHomeMode];
+        const monthDataObj = homeData.monthly[currentHomeMonth] ? homeData.monthly[currentHomeMonth][currentHomeMode] : null;
+        
+        if (!monthDataObj) {
+           contentArea.innerHTML = `<div style="text-align:center; padding:30px; color:#a0aec0; font-size:12px;">データがありません</div>`;
+           return;
+        }
+
         contentArea.innerHTML = `
           <div class="summary-header">
-            <div class="summary-date">${currentHomeMonth} 時点</div>
+            <div class="summary-date">${currentHomeMonth.split('/')[1]}月${monthDataObj.lastDataDay}日 時点</div>
             <div class="summary-values">
               <div class="summary-box">
                 <div class="summary-label">合計 ${currentHomeMode==='purchase'?'仕入':'販売'}</div>
-                <div class="summary-value">¥1,250,000</div>
+                <div class="summary-value">¥${monthDataObj.totalBar.toLocaleString()}</div>
               </div>
               <div class="summary-box">
                 <div class="summary-label">累計 利益</div>
-                <div class="summary-value highlight">¥380,000</div>
+                <div class="summary-value highlight">¥${monthDataObj.totalLine.toLocaleString()}</div>
               </div>
             </div>
           </div>
@@ -449,15 +486,15 @@
           </div>
         `;
         const ctx = document.getElementById('mainChart').getContext('2d');
-        const days = Array.from({length: 31}, (_, i) => i + 1);
+        const days = Array.from({length: monthDataObj.bars.length}, (_, i) => i + 1);
         if (homeChartInstance) { homeChartInstance.destroy(); }
         homeChartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
             labels: days,
             datasets: [
-              { type: 'line', label: config.labelLine, data: config.lines, borderColor: config.lineColor, backgroundColor: config.lineColor, yAxisID: 'y1', pointRadius: 1, tension: 0.2, borderWidth: 2, order: 1 },
-              { type: 'bar', label: config.labelBar, data: config.bars, backgroundColor: config.barColor, yAxisID: 'y', borderRadius: 2, order: 2 }
+              { type: 'line', label: config.labelLine, data: monthDataObj.lines, borderColor: config.lineColor, backgroundColor: config.lineColor, yAxisID: 'y1', pointRadius: 1, tension: 0.2, borderWidth: 2, order: 1, spanGaps: true },
+              { type: 'bar', label: config.labelBar, data: monthDataObj.bars, backgroundColor: config.barColor, yAxisID: 'y', borderRadius: 2, order: 2 }
             ]
           },
           options: {
@@ -589,11 +626,13 @@
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
       
-      // 🆕 ホームグラフの初期化
       document.getElementById('headerTitle').innerText = 'SearchHub';
-      updateHomeView();
 
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
+      
+      // 🆕 起動時にダッシュボードのデータも一緒に取得する
+      if(urlSniper || url10) { fetchDashboardData(); }
+
       setTimeout(() => { hideLoader(); }, 8000);
       if(!urlSniper && !url10) {
         setTimeout(() => { hideLoader(); document.getElementById("lastUpdate").innerText = "設定未完了"; openConfig(); }, 1500);
@@ -608,6 +647,7 @@
         const url10 = AppStorage.get("sh_tensite_url", "");
         if (urlSniper || url10) {
           syncPatrolData();
+          fetchDashboardData(); // バックグラウンドから戻った時もグラフ更新
         }
       }
     });
@@ -657,7 +697,7 @@
       } catch(err) { document.getElementById("lastUpdate").innerText = "通信失敗"; hideLoader(); }
     }
 
-    function forceReload(btn) { btn.style.transform = "rotate(360deg)"; setTimeout(() => btn.style.transform = "rotate(0deg)", 500); syncPatrolData(); }
+    function forceReload(btn) { btn.style.transform = "rotate(360deg)"; setTimeout(() => btn.style.transform = "rotate(0deg)", 500); syncPatrolData(); fetchDashboardData(); }
     function openConfig() {
       document.getElementById("cfgKeepa").value = AppStorage.get("sh_keepa", ""); document.getElementById("cfgSsUrl").value = AppStorage.get("sh_ssurl", "");
       document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", ""); document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
@@ -667,7 +707,7 @@
     function saveConfig() {
       AppStorage.set("sh_keepa", document.getElementById("cfgKeepa").value.trim()); AppStorage.set("sh_ssurl", document.getElementById("cfgSsUrl").value.trim());
       AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim()); AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
-      closeConfig(); syncPatrolData(); 
+      closeConfig(); syncPatrolData(); fetchDashboardData();
     }
     function updateDiscordBtnUI(status) {
       const btn = document.getElementById("dcToggleBtn");
