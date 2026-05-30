@@ -610,6 +610,8 @@
         const prodJson = await prodRes.json();
         const p = prodJson.products[0];
         const productTitle = p.title || fallbackTitle || '不明'; const modelNum = p.model || '不明';
+        window.tmpTitle = productTitle;
+        window.tmpModel = modelNum;
         let imgRaw = '';
         if (p.images && p.images.length > 0) {
           const firstImg = p.images[0]; imgRaw = (typeof firstImg === 'object') ? (firstImg.l || firstImg.m || firstImg.s) : firstImg;
@@ -735,8 +737,14 @@
       const ePrice = document.getElementById("ePrice").value || 0;
       const sPrice = document.getElementById("sPrice").value || 0;
 
-      // データを一時保存
-      pendingRegData = { asin: asin, buyPrice: bPrice, shipping: ePrice, sellPrice: sPrice };
+      pendingRegData = { 
+  asin: asin, 
+  buyPrice: bPrice, 
+  shipping: ePrice, 
+  sellPrice: sPrice,
+  title: window.tmpTitle || "",
+  model: window.tmpModel || ""
+};
 
       // 確認画面に文字をセット
       document.getElementById("confirmDetails").innerHTML = 
