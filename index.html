@@ -22,7 +22,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Meiryo", sans-serif; 
     margin: 0; 
     padding: 0; 
-    background-color: #ffffff; /* 👈 起動時はとりあえず白にしておく！ */
+    background-color: #ffffff;
     color: #333; 
     padding-bottom: env(safe-area-inset-bottom); 
     min-height: 100vh;
@@ -82,7 +82,6 @@
 
     /* 下部ボタン群のリファイン */
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 20px 16px; }
-    /* 💡 1列表示で文字が崩れないように white-space: nowrap; を追加！ */
     .dash-btn { position: relative; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 10px; text-align: center; color: #1a365d; font-weight: bold; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.1s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;}
     .dash-btn:active { transform: scale(0.95); background: #f8fafc; }
     .dash-btn i { font-size: 26px; }
@@ -199,7 +198,7 @@
 
     <div class="dashboard-grid">
       <button class="dash-btn" onclick="openView('view-amazon')"><i class="fab fa-amazon" style="color:#ff9900;"></i>リサーチ</button>
-      <button class="dash-btn" onclick="openView('view-history')"><i class="fas fa-history" style="color:#4285f4;"></i>販売履歴リサーチ</button>
+      <button class="dash-btn" onclick="openView('view-researcher'); loadResearcherData();"><i class="fas fa-clipboard-check" style="color:#a855f7;"></i>Researcher精査</button>
       <button class="dash-btn" onclick="openView('view-price')"><i class="fas fa-yen-sign" style="color:#1a365d;"></i>価格改定</button>
       <button class="dash-btn" onclick="openView('view-monthly')"><i class="fas fa-chart-bar" style="color:#55a676;"></i>月別データ詳細</button>
       <button class="dash-btn" onclick="openView('view-watcher')"><i class="fas fa-eye" style="color:#07A27B;"></i>Watcher<span class="dash-dot" id="dash-dot-watcher"></span></button>
@@ -274,6 +273,23 @@
       <div id="historyResult">
         <div class="card" style="text-align:center; color:#a0aec0; padding:30px 10px; font-size:12px;">ASINを入力して検索ボタンを押してな！</div>
       </div>
+    </div>
+  </div>
+
+  <div id="view-researcher" class="view">
+    <div class="content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:bold; color:#4a5568;" id="resCount">候補を読み込み中...</span>
+        <div style="display:flex; gap:4px;">
+          <button onclick="copyAsins20()" style="background:#f7941d; color:white; border:none; padding:8px 12px; border-radius:6px; font-size:11px; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><i class="fas fa-copy"></i> ASIN20件コピー</button>
+          <button onclick="removeCheckedItems()" style="background:#e53e3e; color:white; border:none; padding:8px 12px; border-radius:6px; font-size:11px; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.1);"><i class="fas fa-trash-alt"></i> チェック削除</button>
+        </div>
+      </div>
+      
+      <div id="researcherResult">
+        </div>
+      
+      <button onclick="sendEliteItems(this)" style="width:100%; background:#07A27B; color:white; padding:14px; border:none; border-radius:8px; font-weight:bold; font-size:15px; margin-top:20px; box-shadow:0 4px 6px rgba(0,0,0,0.2);">🚀 残った商品を「仕入れsheet」へ登録！</button>
     </div>
   </div>
 
@@ -609,6 +625,7 @@
         else if(viewId === 'view-price') titleEl.innerText = '価格改定';
         else if(viewId === 'view-history') titleEl.innerText = '販売履歴リサーチ';
         else if(viewId === 'view-monthly') titleEl.innerText = '月別データ詳細'; 
+        else if(viewId === 'view-researcher') titleEl.innerText = 'Researcher精査'; // 🌟 Researcher精査タイトル
       }
 
       if (viewId === 'view-price') {
@@ -775,7 +792,7 @@
     // 🚀 ステップ②: グラフの左右スワイプ対応版 setupSwipe & swipeToTab
     function setupSwipe() {
       let touchStartX = 0; let touchStartY = 0;
-      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly'), document.getElementById('view-home'), document.getElementById('view-amazon'), document.getElementById('view-history'), document.getElementById('view-price')];
+      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly'), document.getElementById('view-home'), document.getElementById('view-amazon'), document.getElementById('view-history'), document.getElementById('view-price'), document.getElementById('view-researcher')];
       
       areas.forEach(contentArea => {
         if(!contentArea) return;
@@ -786,8 +803,8 @@
           
           if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
             
-            // 🚀 単一画面（Amazon, 履歴, 価格改定）なら右スワイプで即ホームへ
-            if (diffX > 50 && (currentActiveView === 'view-amazon' || currentActiveView === 'view-history' || currentActiveView === 'view-price')) {
+            // 🚀 単一画面（Amazon, 履歴, 価格改定, Researcher）なら右スワイプで即ホームへ
+            if (diffX > 50 && (currentActiveView === 'view-amazon' || currentActiveView === 'view-history' || currentActiveView === 'view-price' || currentActiveView === 'view-researcher')) {
               openView('view-home'); return;
             }
             
@@ -1489,6 +1506,153 @@ document.getElementById("regPurchaseUrl").value = "";
       document.getElementById('monthly-btn-next').disabled = (monthlyCurrentPage === totalPages);
       pagiDiv.style.display = (totalPages > 1) ? 'flex' : 'none';
       document.getElementById('monthly-search-kw').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ==========================================
+    // 🚀 Researcher精査 機能のJSコード
+    // ==========================================
+    let globalResearcherData = [];
+    let asinCopyIndex = 0; // コピーした件数を記憶
+
+    // 1️⃣ GASから未精査データを取得
+    async function loadResearcherData() {
+      const resDiv = document.getElementById('researcherResult');
+      resDiv.innerHTML = '<div class="loading-spinner">⌛ リサーチsheetから候補を取得中...</div>';
+      document.getElementById('resCount').innerText = "同期中...";
+      
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      
+      if (!ssUrl || !targetGasUrl) { 
+        resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">⚙️設定を完了させてな！</div>'; 
+        return; 
+      }
+
+      try {
+        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getResearcherData', ssUrl: ssUrl }) });
+        const json = await res.json();
+        if (json.success) {
+          globalResearcherData = json.data;
+          asinCopyIndex = 0;
+          renderResearcherList();
+        } else {
+          resDiv.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 取得失敗: ' + json.message + '</div>';
+        }
+      } catch(err) {
+        resDiv.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 通信エラーが発生しました</div>';
+      }
+    }
+
+    // 2️⃣ 画面にリストを描画
+    function renderResearcherList() {
+      const resDiv = document.getElementById('researcherResult');
+      document.getElementById('resCount').innerText = `残候補: ${globalResearcherData.length}件`;
+      
+      if (globalResearcherData.length === 0) {
+        resDiv.innerHTML = '<div class="card" style="text-align:center; padding:30px 10px; color:#a0aec0; font-size:13px;">現在、未精査の候補はありません。</div>';
+        return;
+      }
+
+      let html = "";
+      globalResearcherData.forEach((item, index) => {
+        let imgHtml = item.img ? `<div style="width:60px; height:60px; background:#fff; border:1px solid #eee; border-radius:6px; padding:2px; flex-shrink:0;"><img src="${item.img}" style="width:100%; height:100%; object-fit:contain;"></div>` : '<div style="width:60px; height:60px; background:#f8fafc; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
+
+        html += `
+        <div class="card" id="resCard_${index}" style="display:flex; align-items:flex-start; gap:12px; padding:12px; margin-bottom:10px; border-left:4px solid #a855f7;">
+          <input type="checkbox" id="check_${index}" style="width:28px; height:28px; margin-top:15px;">
+          
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:bold; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.asin}</span>
+              <span style="font-size:11px; font-weight:bold; color:#e53e3e;">${item.rank}ランク</span>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:8px;">
+              ${imgHtml}
+              <div style="font-size:12px; font-weight:bold; color:#1a365d; line-height:1.4;">${escapeHtml(item.title)}</div>
+            </div>
+            
+            <div style="font-size:10px; font-weight:bold; color:#718096; margin-bottom:2px;">検索キーワード (手動調整OK)</div>
+            <input type="text" id="keyword_${index}" value="${escapeHtml(item.model)}" style="width:100%; padding:8px; border:1px solid #cbd5e0; border-radius:4px; font-size:13px; font-weight:bold; background:#fff; outline:none; margin-bottom:8px; box-sizing:border-box;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:6px; border-radius:6px; border:1px solid #e2e8f0;">
+              <span style="font-size:11px; font-weight:bold; color:#4a5568;">最安: ¥${Number(item.minUsed).toLocaleString()}</span>
+              <a href="https://keepa.com/#!product/5-${item.asin}" target="_blank" style="background:#55a676; color:white; text-decoration:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold;"><i class="fas fa-chart-line"></i> Keepa</a>
+            </div>
+          </div>
+        </div>`;
+      });
+      resDiv.innerHTML = html;
+    }
+
+    // 3️⃣ チェックしたやつ（いらんやつ）をリストから消去！
+    function removeCheckedItems() {
+      // チェックされていないものだけを残す（消去法）
+      globalResearcherData = globalResearcherData.filter((item, index) => {
+        const checkbox = document.getElementById(`check_${index}`);
+        return checkbox && !checkbox.checked; 
+      });
+      asinCopyIndex = 0; // コピー位置リセット
+      renderResearcherList();
+    }
+
+    // 4️⃣ ASINを20件ずつコピーしてセラセンへ飛ぶ！
+    function copyAsins20() {
+      if(globalResearcherData.length === 0) return;
+      
+      // まだコピーしてない次の20件を取得
+      const targetItems = globalResearcherData.slice(asinCopyIndex, asinCopyIndex + 20);
+      if(targetItems.length === 0) {
+        alert("すべてのASINをコピー済みです！\n最初からコピーし直す場合は一度他の画面へ移動してください。");
+        return;
+      }
+      
+      // カンマ区切りでASINを結合
+      const asinString = targetItems.map(i => i.asin).join(',');
+      
+      navigator.clipboard.writeText(asinString).then(() => {
+        alert(`上から ${asinCopyIndex + 1}件目 ～ ${asinCopyIndex + targetItems.length}件目 のASINをコピーしたで！\nセラーセントラルを開きます。`);
+        asinCopyIndex += 20; // 次のスタート位置を更新
+        // 商品登録ページ（一括検索）へ飛ばす
+        window.open("https://sellercentral.amazon.co.jp/product-search", "_blank");
+      });
+    }
+
+    // 5️⃣ 最後に残ったエリートたちをGASに送信！！
+    async function sendEliteItems(btn) {
+      if(globalResearcherData.length === 0) return alert("登録する商品がありません！");
+      
+      // 画面で手動編集された「検索キーワード」を最新の状態として取得
+      globalResearcherData.forEach((item, index) => {
+        const kwInput = document.getElementById(`keyword_${index}`);
+        if(kwInput) item.model = kwInput.value.trim(); // F列(model)を上書き
+      });
+
+      btn.innerText = "⌛ 送信中...";
+      btn.disabled = true;
+
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+
+      try {
+        const res = await fetch(targetGasUrl, { 
+          method: 'POST', 
+          body: JSON.stringify({ command: 'registerEliteItems', ssUrl: ssUrl, items: globalResearcherData }) 
+        });
+        const json = await res.json();
+        
+        if (json.success) {
+          alert("✅ 仕入れsheetへの登録が完了しました！\nスナイパーの監視網に連携されます！");
+          globalResearcherData = []; // リストを空にする
+          renderResearcherList();
+        } else {
+          alert("❌ 登録失敗: " + json.message);
+        }
+      } catch(err) {
+        alert("通信エラーが発生しました");
+      }
+      btn.innerText = "🚀 残った商品を「仕入れsheet」へ登録！";
+      btn.disabled = false;
     }
 
     // 🚀 ステップ②: 下に引っ張って更新 (Pull to Refresh) の処理
