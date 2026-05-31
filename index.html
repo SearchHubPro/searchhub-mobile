@@ -1252,9 +1252,9 @@ saveAmazonHistory({ kw: asin, title: productTitle, img: imageUrl, rank: rank, rC
                 <input type="number" id="sim_price_${uniqueId}" value="${item.price > 0 ? item.price : ''}" placeholder="0" onfocus="this.placeholder=''" onblur="this.placeholder='0'" oninput="calcSimProfit('${uniqueId}', ${item.cost}, ${item.fbaFee}, ${item.feePercent || 10})" style="width:85px; text-align:right; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:15px; font-weight:900; color:#1a365d; outline:none;">
               </div>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:12px; color:#888; margin-top:8px;">
-  <span>仕入: ¥${item.purchasePrice}</span>
-  <span>手数料: ¥${ Math.floor(item.currentPrice * 0.1) } / FBA: ¥${item.fbaFee}</span>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#718096; margin-bottom:8px;">
+  <span>仕入: ¥${Number(item.cost).toLocaleString()}</span>
+  <span>手数料: ¥${Math.floor(Number(String(item.price || 0).replace(/,/g, '')) * 0.1).toLocaleString()} / FBA: ¥${Number(item.fbaFee).toLocaleString()}</span>
 </div>
             <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1px dashed #cbd5e0; padding-top:8px;">
               <span style="font-size:11px; font-weight:bold; color:#4a5568;">手残り利益:</span>
