@@ -1660,12 +1660,19 @@ document.getElementById("regPurchaseUrl").value = "";
 
     // 3️⃣ チェックしたやつ（いらんやつ）をリストから消去！
     function removeCheckedItems() {
-      // チェックされていないものだけを残す（消去法）
       globalResearcherData = globalResearcherData.filter((item, index) => {
         const checkbox = document.getElementById(`check_${index}`);
         return checkbox && !checkbox.checked; 
       });
-      asinCopyIndex = 0; // コピー位置リセット
+      
+      // 💡 ここでGASに「削除後のリスト」を投げて、シートを物理的に綺麗にする！
+      const researcherUrl = AppStorage.get("sh_researcher_url", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      fetch(targetGasUrl, { 
+        method: 'POST', 
+        body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: globalResearcherData }) 
+      });
+
       renderResearcherList();
     }
 
@@ -1695,36 +1702,33 @@ document.getElementById("regPurchaseUrl").value = "";
     async function sendEliteItems(btn) {
       if(globalResearcherData.length === 0) return alert("登録する商品がありません！");
       
-      // 画面で手動編集された「検索キーワード」を最新の状態として取得
+      // 入力されたキーワードを反映
       globalResearcherData.forEach((item, index) => {
         const kwInput = document.getElementById(`keyword_${index}`);
-        if(kwInput) item.model = kwInput.value.trim(); // F列(model)を上書き
+        if(kwInput) item.model = kwInput.value.trim();
       });
 
-      btn.innerText = "⌛ 送信中...";
+      btn.innerText = "⌛ 登録＆シート整理中...";
       btn.disabled = true;
 
-      // 🌟 ここを変更：ssUrl じゃなく researcherUrl を使う！
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
       try {
-        // 🌟 ここも変更：送信するデータを ssUrl: researcherUrl に！
-        const res = await fetch(targetGasUrl, { 
-          method: 'POST', 
-          body: JSON.stringify({ command: 'registerEliteItems', ssUrl: researcherUrl, items: globalResearcherData }) 
-        });
-        const json = await res.json();
+        // 1. 仕入れsheetへ登録
+        const resReg = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'registerEliteItems', ssUrl: researcherUrl, items: globalResearcherData }) });
         
-        if (json.success) {
-          alert("✅ 仕入れsheetへの登録が完了しました！\nスナイパーの監視網に連携されます！");
-          globalResearcherData = []; // リストを空にする
+        // 2. リサーチsheetを空にする（remainingItemsを空で送る）
+        const resUpdate = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: [] }) });
+        
+        const jsonReg = await resReg.json();
+        if (jsonReg.success) {
+          alert("✅ 仕入れsheetへ登録し、リサーチsheetを空にしました！");
+          globalResearcherData = [];
           renderResearcherList();
-        } else {
-          alert("❌ 登録失敗: " + json.message);
         }
       } catch(err) {
-        alert("通信エラーが発生しました");
+        alert("通信エラー");
       }
       btn.innerText = "🚀 残った商品を「仕入れsheet」へ登録！";
       btn.disabled = false;
