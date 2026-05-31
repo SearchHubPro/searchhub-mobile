@@ -574,13 +574,12 @@
     function hideLoader() {
       const loader = document.getElementById("loader");
       if (loader && loader.style.display !== "none") {
-        loader.style.opacity = "0";
+        
+        document.body.style.backgroundColor = "#f0f2f5"; // 👈 消え始める瞬間に裏地をグレーにする！
+        loader.style.opacity = "0"; // 👈 ここから0.5秒かけてローディングが透けていく
+        
         setTimeout(() => { 
           loader.style.display = "none"; 
-          
-          // 👇 ここに追加！ローディングが消えた瞬間に裏地をグレーにする！
-          document.body.style.backgroundColor = "#f0f2f5"; 
-          
         }, 500);
       }
     }
