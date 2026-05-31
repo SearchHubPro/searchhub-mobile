@@ -478,7 +478,9 @@
         }
 
         // 💡 利益率の計算を追加！
-        const marginStr = monthDataObj.totalBar > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalBar) * 100) : 0;
+        const marginStr = currentHomeMode === 'purchase' 
+  ? (monthDataObj.totalEstSales > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalEstSales) * 100) : 0)
+  : (monthDataObj.totalBar > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalBar) * 100) : 0);
         const profitLabel = currentHomeMode === 'purchase' ? '想定利益' : '確定利益';
         const marginLabel = currentHomeMode === 'purchase' ? '想定利益率' : '利益率';
 
