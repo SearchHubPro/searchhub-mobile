@@ -1578,8 +1578,7 @@ document.getElementById("regPurchaseUrl").value = "";
       }
     }
 
-    // 2️⃣ 画面にリストを描画
-    // 2️⃣ 画面にリストを描画（🌟神UIアップデート版🌟）
+  // 2️⃣ 画面にリストを描画（🌟神UIアップデート版 ＆ 画像完璧版🌟）
     function renderResearcherList() {
       const resDiv = document.getElementById('researcherResult');
       document.getElementById('resCount').innerText = `残候補: ${globalResearcherData.length}件`;
@@ -1591,14 +1590,26 @@ document.getElementById("regPurchaseUrl").value = "";
 
       let html = "";
       globalResearcherData.forEach((item, index) => {
-        // 🌟 1. 画像の「？」対策（httpがない場合はAmazonの画像URLを自動補完！）
+        // 🌟 1. 画像処理（他の画面と同じ一番確実な処理 ＋ 万が一のASIN保険）
         let imgUrl = item.img ? item.img.toString().trim() : '';
+        // もしURLじゃなくてKeepaの画像ID（例: 41ABC.jpg）ならAmazonのURLを足す
         if (imgUrl && !imgUrl.startsWith('http')) {
           imgUrl = 'https://images-na.ssl-images-amazon.com/images/I/' + imgUrl.split(',')[0];
         }
-        let imgHtml = imgUrl ? `<div style="width:60px; height:60px; background:#fff; border:1px solid #eee; border-radius:6px; padding:2px; flex-shrink:0;"><img src="${imgUrl}" style="width:100%; height:100%; object-fit:contain;" onerror="this.onerror=null;this.src='https://i.ibb.co/G4R4Jz50/image.png';"></div>` : '<div style="width:60px; height:60px; background:#f8fafc; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
+        
+        // ASINから画像を引っ張る裏URL（保険）
+        const fallbackAsinImg = `https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=${item.asin}&Format=_SL250_&ID=AsinImage&MarketPlace=JP&ServiceVersion=20070822&WS=1`;
+        
+        // imgUrlが空っぽなら保険のASIN画像を使用
+        if (!imgUrl || imgUrl === 'No Img' || imgUrl === '-') {
+          imgUrl = fallbackAsinImg;
+        }
 
-        // 🌟 4. ランク色分け（指定カラー）
+        let imgHtml = `<div style="width:60px; height:60px; background:#fff; border:1px solid #eee; border-radius:6px; padding:2px; flex-shrink:0;">
+          <img src="${imgUrl}" style="width:100%; height:100%; object-fit:contain;" onerror="this.onerror=null;this.src='${fallbackAsinImg}';">
+        </div>`;
+
+        // 🌟 4. ランク色分け（指定カラーに完全対応！）
         let rankColor = '#000000'; // その他は黒
         let rankText = item.rank ? item.rank.toString().toUpperCase() : '';
         if (rankText === 'SR') rankColor = '#a855f7'; // 紫
@@ -1663,7 +1674,7 @@ document.getElementById("regPurchaseUrl").value = "";
       renderResearcherList();
     }
 
-    // 4️⃣ ASINを20件ずつコピーしてセラセンへ飛ぶ！
+// 4️⃣ ASINを20件ずつコピーして「別アプリで確認」に変更！
     function copyAsins20() {
       if(globalResearcherData.length === 0) return;
       
@@ -1678,10 +1689,10 @@ document.getElementById("regPurchaseUrl").value = "";
       const asinString = targetItems.map(i => i.asin).join(',');
       
       navigator.clipboard.writeText(asinString).then(() => {
-        alert(`上から ${asinCopyIndex + 1}件目 ～ ${asinCopyIndex + targetItems.length}件目 のASINをコピーしたで！\nセラーセントラルを開きます。`);
+        alert(`上から ${asinCopyIndex + 1}件目 ～ ${asinCopyIndex + targetItems.length}件目 のASINをコピーしたで！\n別アプリで確認してな！`);
         asinCopyIndex += 20; // 次のスタート位置を更新
-        // 商品登録ページ（一括検索）へ飛ばす
-        window.open("https://sellercentral.amazon.co.jp/product-search", "_blank");
+        
+        // 🌟 自動でセラセンを開く処理を削除したで！
       });
     }
 
