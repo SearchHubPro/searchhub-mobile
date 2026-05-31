@@ -205,7 +205,7 @@
         <input type="text" id="amazonKw" placeholder="ASINや型番を入力...">
         <button onclick="runAmazonResearch()" id="searchBtn">解析</button>
       </div>
-      <div id="amazonHistoryArea" style="display:flex; gap:8px; overflow-x:auto; margin-bottom:12px; padding-bottom:4px; white-space:nowrap; -webkit-overflow-scrolling:touch;"></div>
+      <div id="amazonHistoryArea" style="display:flex; flex-direction:column; gap:10px; margin-bottom:12px;"></div>
       
       <div id="amazonResult">
         <div class="card" style="text-align:center; color:#a0aec0; padding:20px; font-size:12px;">ASINやキーワードを入力して解析ボタンを押してな！</div>
@@ -479,6 +479,8 @@
 
         // 💡 利益率の計算を追加！
         const marginStr = monthDataObj.totalBar > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalBar) * 100) : 0;
+        const profitLabel = currentHomeMode === 'purchase' ? '想定利益' : '確定利益';
+        const marginLabel = currentHomeMode === 'purchase' ? '想定利益率' : '利益率';
 
         contentArea.innerHTML = `
           <div class="summary-header">
@@ -489,11 +491,12 @@
                 <div class="summary-value">¥${monthDataObj.totalBar.toLocaleString()}</div>
               </div>
               <div class="summary-box">
-                <div class="summary-label">累計 利益</div>
-                <div class="summary-value highlight" style="display:flex; align-items:baseline; gap:4px;">
-                  ¥${monthDataObj.totalLine.toLocaleString()}
-                  <span style="font-size:14px; color:#565959; font-weight:bold;">(${marginStr}%)</span>
-                </div>
+                <div class="summary-label">${profitLabel}</div>
+                <div class="summary-value highlight">¥${monthDataObj.totalLine.toLocaleString()}</div>
+              </div>
+              <div class="summary-box">
+                <div class="summary-label">${marginLabel}</div>
+                <div class="summary-value" style="color:#008296;">${marginStr}%</div>
               </div>
             </div>
           </div>
@@ -594,7 +597,12 @@
       if (viewId === 'view-monthly') {
         if (globalMonthlyData.purchase.length === 0 && globalMonthlyData.sales.length === 0) loadMonthlyData(); else renderMonthlyData();
       }
-      if (viewId === 'view-amazon') loadAmazonHistory(); // 💡 画面を開いた時に履歴を呼ぶ
+      if (viewId === 'view-amazon') {
+        document.getElementById('amazonKw').value = '';
+        document.getElementById('amazonResult').style.display = 'none';
+        document.getElementById('amazonHistoryArea').style.display = 'block';
+        loadAmazonHistory();
+      }
       window.scrollTo(0,0);
     }
 
@@ -837,19 +845,31 @@
       let history = [];
       try { history = JSON.parse(AppStorage.get("sh_amazon_history", "[]")); } catch(e) {}
       if(history.length === 0) { histArea.innerHTML = ''; return; }
-      let html = '';
+      let html = '<div style="font-size:12px; font-weight:bold; color:#718096; margin-bottom:4px;">🕒 最近の検索履歴</div>';
       history.forEach(item => {
-        html += `<span onclick="document.getElementById('amazonKw').value='${item.kw}'; runAmazonResearch();" style="background:#e2e8f0; color:#4a5568; padding:6px 12px; border-radius:12px; font-size:11px; font-weight:bold; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">${escapeHtml(item.title)}</span>`;
+        let imgHtml = item.img ? `<div style="width:50px; height:50px; background:#fff; border:1px solid #eee; border-radius:6px; padding:2px; flex-shrink:0;"><img src="${item.img}" style="width:100%; height:100%; object-fit:contain;"></div>` : '<div style="width:50px; height:50px; background:#f8fafc; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#999; border:1px solid #eee;">No Img</div>';
+        html += `
+        <div onclick="document.getElementById('amazonKw').value='${item.kw}'; runAmazonResearch();" class="card" style="display:flex; gap:10px; align-items:center; padding:10px; margin-bottom:0; cursor:pointer; border-left:4px solid #4a5568;">
+          ${imgHtml}
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:11px; font-weight:bold; color:#1a365d; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;">${escapeHtml(item.title)}</div>
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+              <span style="background:#e0f2fe; color:#0369a1; padding:2px 5px; border-radius:4px; font-size:9px; font-weight:bold;">${item.kw}</span>
+              <span style="border:1px solid ${item.rColor}; color:${item.rColor}; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:bold;">${item.rank}</span>
+              <span style="background:#f0f4ff; color:#2c4c8f; border:1px solid #dbeafe; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:bold;">中古 ${item.used}</span>
+            </div>
+          </div>
+        </div>`;
       });
       histArea.innerHTML = html;
     }
     
-    function saveAmazonHistory(kw, title) {
+    function saveAmazonHistory(data) {
       let history = [];
       try { history = JSON.parse(AppStorage.get("sh_amazon_history", "[]")); } catch(e) {}
-      history = history.filter(item => item.kw !== kw); // 重複削除
-      history.unshift({kw: kw, title: (title.length > 10 ? title.substring(0,10)+'...' : title)});
-      if(history.length > 10) history = history.slice(0, 10); // 10件まで
+      history = history.filter(item => item.kw !== data.kw);
+      history.unshift(data);
+      if(history.length > 10) history = history.slice(0, 10);
       AppStorage.set("sh_amazon_history", JSON.stringify(history));
       loadAmazonHistory();
     }
@@ -858,6 +878,8 @@
       const kw = document.getElementById("amazonKw").value.trim(); const resView = document.getElementById("amazonResult"); const apiKey = AppStorage.get("sh_keepa", "");
       if (!kw) return alert("キーワードかASINを入力してな！"); if (!apiKey) { openConfig(); return alert("⚙️設定からKeepaAPIキーを入力してな！"); }
       resView.innerHTML = '<div class="loading-spinner">⌛ Keepa APIと高速通信・解析中...</div>';
+document.getElementById('amazonHistoryArea').style.display = 'none';
+      resView.style.display = 'block';
       try {
         let asin = kw;
         if (!/^[A-Z0-9]{10}$/i.test(kw)) {
@@ -922,6 +944,7 @@
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <span class="badge" style="border:1px solid ${rColor}; color:${rColor}; padding:3px 8px;">${rank}ランク</span>
                 <span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white; padding:3px 8px;">${sizeTier}</span>
+<button onclick="openView('view-history'); document.getElementById('historyAsin').value='${asin}'; searchHistory();" style="background:#4285f4; color:white; border:none; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:10px; margin-left:4px; cursor:pointer;"><i class="fas fa-history"></i> 販売履歴リサーチ</button>
               </div>
             </div>
             <div style="display:flex; flex-direction:column; align-items:stretch; gap:6px; flex-shrink:0; width:55px;">
@@ -965,7 +988,7 @@
           </div>
           <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:12px;">🚀 SearchHub : Managerへ仕入れ登録</button>
           
-          <button onclick="openView('view-history'); document.getElementById('historyAsin').value='${asin}'; searchHistory();" style="width:100%; background:#4285f4; color:white; border:none; padding:12px; border-radius:12px; font-weight:bold; font-size:14px; margin-bottom:16px; box-shadow:0 3px 6px rgba(0,0,0,0.2); display:flex; justify-content:center; align-items:center; gap:8px;"><i class="fas fa-history"></i> 自社の販売履歴を検索</button>
+          
 
           <div class="grid-3">
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
@@ -990,7 +1013,7 @@
         updateCalc();
         
         // 🚀 解析成功時に履歴に保存！
-        saveAmazonHistory(asin, productTitle);
+saveAmazonHistory({ kw: asin, title: productTitle, img: imageUrl, rank: rank, rColor: rColor, used: usedOffers });
 
       } catch (err) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>'; }
     }
