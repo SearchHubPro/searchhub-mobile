@@ -358,10 +358,15 @@
         </div>
 
       <label>仕入れ先を選択 (情報sheetから取得)</label>
-      <select id="supplierSelect" style="width:100%; padding:10px; margin-top:4px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:#fff; outline:none;">
+      <select id="supplierSelect" style="width:100%; padding:10px; margin-top:4px; margin-bottom:12px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:#fff; outline:none;">
         <option value="">🔄 リストを読込中...</option>
       </select>
 
+      <label>購入URL (E列)</label>
+      <input type="text" id="regPurchaseUrl" placeholder="https://..." style="width:100%; padding:10px; margin-top:4px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:#fff; outline:none; box-sizing:border-box;">
+
+      <label>商品ID (F列)</label>
+      <input type="text" id="regPurchaseId" placeholder="m123456789など" style="width:100%; padding:10px; margin-top:4px; margin-bottom:16px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:#fff; outline:none; box-sizing:border-box;">
       <div class="modal-actions">
         <button style="background:#e2e8f0; color:#4a5568;" onclick="closeConfirmModal()">キャンセル</button>
         <button id="executeRegBtn" style="background:#1a365d; color:white;" onclick="executeRegistration()">この内容で登録</button>
@@ -1119,6 +1124,9 @@ saveAmazonHistory({ kw: asin, title: productTitle, img: imageUrl, rank: rank, rC
          <b>経費/送料:</b> ¥${Number(ePrice).toLocaleString()}<br>
          <b>販売値:</b> ¥${Number(sPrice).toLocaleString()}`;
 
+document.getElementById("regPurchaseUrl").value = "";
+      document.getElementById("regPurchaseId").value = "";
+
       document.getElementById("confirmRegisterModal").style.display = "flex";
       fetchSupplierList();
     }
@@ -1152,6 +1160,9 @@ saveAmazonHistory({ kw: asin, title: productTitle, img: imageUrl, rank: rank, rC
       if (!supplier) { return alert("仕入れ先を選択してください！"); }
 
       pendingRegData.supplier = supplier;
+
+      pendingRegData.purchaseUrl = document.getElementById("regPurchaseUrl").value.trim();
+      pendingRegData.purchaseId = document.getElementById("regPurchaseId").value.trim();
 
       const btn = document.getElementById("executeRegBtn");
       const ssUrl = AppStorage.get("sh_ssurl", "");
