@@ -205,6 +205,8 @@
         <input type="text" id="amazonKw" placeholder="ASINや型番を入力...">
         <button onclick="runAmazonResearch()" id="searchBtn">解析</button>
       </div>
+      <div id="amazonHistoryArea" style="display:flex; gap:8px; overflow-x:auto; margin-bottom:12px; padding-bottom:4px; white-space:nowrap; -webkit-overflow-scrolling:touch;"></div>
+      
       <div id="amazonResult">
         <div class="card" style="text-align:center; color:#a0aec0; padding:20px; font-size:12px;">ASINやキーワードを入力して解析ボタンを押してな！</div>
       </div>
@@ -475,6 +477,9 @@
            return;
         }
 
+        // 💡 利益率の計算を追加！
+        const marginStr = monthDataObj.totalBar > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalBar) * 100) : 0;
+
         contentArea.innerHTML = `
           <div class="summary-header">
             <div class="summary-date">${currentHomeMonth.split('/')[1]}月${monthDataObj.lastDataDay}日 時点</div>
@@ -485,7 +490,10 @@
               </div>
               <div class="summary-box">
                 <div class="summary-label">累計 利益</div>
-                <div class="summary-value highlight">¥${monthDataObj.totalLine.toLocaleString()}</div>
+                <div class="summary-value highlight" style="display:flex; align-items:baseline; gap:4px;">
+                  ¥${monthDataObj.totalLine.toLocaleString()}
+                  <span style="font-size:14px; color:#565959; font-weight:bold;">(${marginStr}%)</span>
+                </div>
               </div>
             </div>
           </div>
@@ -586,6 +594,7 @@
       if (viewId === 'view-monthly') {
         if (globalMonthlyData.purchase.length === 0 && globalMonthlyData.sales.length === 0) loadMonthlyData(); else renderMonthlyData();
       }
+      if (viewId === 'view-amazon') loadAmazonHistory(); // 💡 画面を開いた時に履歴を呼ぶ
       window.scrollTo(0,0);
     }
 
@@ -820,6 +829,30 @@
     function jumpToAmazonResearch(asin, title) { document.getElementById("amazonKw").value = asin; window.scrollTo({ top: 0, behavior: 'smooth' }); runAmazonResearch(title); }
     function copyAsin(asin) { if (asin && asin !== "B000000000") { navigator.clipboard.writeText(asin).then(() => { const icon = document.getElementById('copyIcon'); if(icon) { icon.className = "fas fa-check text-green-500 text-[12px] ml-1"; setTimeout(() => { icon.className = "far fa-copy text-gray-400 text-[12px] ml-1"; }, 1500); } }); } }
     function searchAmazonKeyword() { let modelText = document.getElementById('itemModelText') ? document.getElementById('itemModelText').innerText.trim() : ''; if (!modelText || modelText === '-') modelText = document.getElementById('amazonKw').value.trim(); if (!modelText) return alert("検索するキーワードがありません。"); window.open(`https://www.google.com/search?q=${encodeURIComponent(modelText + ' amazon')}`, '_blank'); }
+
+// 🚀 Amazon履歴の読み込みと保存
+    function loadAmazonHistory() {
+      const histArea = document.getElementById('amazonHistoryArea');
+      if(!histArea) return;
+      let history = [];
+      try { history = JSON.parse(AppStorage.get("sh_amazon_history", "[]")); } catch(e) {}
+      if(history.length === 0) { histArea.innerHTML = ''; return; }
+      let html = '';
+      history.forEach(item => {
+        html += `<span onclick="document.getElementById('amazonKw').value='${item.kw}'; runAmazonResearch();" style="background:#e2e8f0; color:#4a5568; padding:6px 12px; border-radius:12px; font-size:11px; font-weight:bold; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);">${escapeHtml(item.title)}</span>`;
+      });
+      histArea.innerHTML = html;
+    }
+    
+    function saveAmazonHistory(kw, title) {
+      let history = [];
+      try { history = JSON.parse(AppStorage.get("sh_amazon_history", "[]")); } catch(e) {}
+      history = history.filter(item => item.kw !== kw); // 重複削除
+      history.unshift({kw: kw, title: (title.length > 10 ? title.substring(0,10)+'...' : title)});
+      if(history.length > 10) history = history.slice(0, 10); // 10件まで
+      AppStorage.set("sh_amazon_history", JSON.stringify(history));
+      loadAmazonHistory();
+    }
     
     async function runAmazonResearch(fallbackTitle) {
       const kw = document.getElementById("amazonKw").value.trim(); const resView = document.getElementById("amazonResult"); const apiKey = AppStorage.get("sh_keepa", "");
@@ -930,8 +963,10 @@
             <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; color:#90cdf4;"><span>入金目安</span><span id="resNyukin">--</span></div>
             <div style="display:flex; justify-content:space-between; font-size:18px; color:#48bb78;"><span>想定利益</span><span id="resProfit">--</span></div>
           </div>
-          <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:16px;">🚀 SearchHub : Managerへ仕入れ登録</button>
+          <button class="register-btn" id="regBtn" onclick="sendToManager('${asin}')" style="margin-bottom:12px;">🚀 SearchHub : Managerへ仕入れ登録</button>
           
+          <button onclick="openView('view-history'); document.getElementById('historyAsin').value='${asin}'; searchHistory();" style="width:100%; background:#4285f4; color:white; border:none; padding:12px; border-radius:12px; font-weight:bold; font-size:14px; margin-bottom:16px; box-shadow:0 3px 6px rgba(0,0,0,0.2); display:flex; justify-content:center; align-items:center; gap:8px;"><i class="fas fa-history"></i> 自社の販売履歴を検索</button>
+
           <div class="grid-3">
             <a href="https://keepa.com/#!product/5-${asin}" target="_blank" class="btn-link" style="background:#55a676;">Keepa</a>
             <button onclick="searchAmazonKeyword()" class="btn-link" style="background:#3f51b5; border:none;">検索</button>
@@ -953,6 +988,10 @@
         };
         ['sPrice', 'bPrice', 'ePrice'].forEach(id => { document.getElementById(id).addEventListener('input', updateCalc); });
         updateCalc();
+        
+        // 🚀 解析成功時に履歴に保存！
+        saveAmazonHistory(asin, productTitle);
+
       } catch (err) { resView.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center; font-weight:bold;">❌ 解析エラーが発生しました</div>'; }
     }
     
