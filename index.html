@@ -757,19 +757,37 @@
     // 🚀 ステップ②: グラフの左右スワイプ対応版 setupSwipe & swipeToTab
     function setupSwipe() {
       let touchStartX = 0; let touchStartY = 0;
-      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly'), document.getElementById('view-home')];
+      // 💡 areasに、スワイプを検知したい画面を全部追加！
+      const areas = [document.getElementById('content-sniper'), document.getElementById('content-watcher'), document.getElementById('content-monthly'), document.getElementById('view-home'), document.getElementById('view-amazon'), document.getElementById('view-history'), document.getElementById('view-price')];
+      
       areas.forEach(contentArea => {
         if(!contentArea) return;
         contentArea.addEventListener('touchstart', function(e) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive: true});
         contentArea.addEventListener('touchend', function(e) {
-          if (currentActiveView !== 'view-sniper' && currentActiveView !== 'view-watcher' && currentActiveView !== 'view-monthly' && currentActiveView !== 'view-home') return;
-          const diffX = e.changedTouches[0].clientX - touchStartX; const diffY = e.changedTouches[0].clientY - touchStartY;
+          const diffX = e.changedTouches[0].clientX - touchStartX; 
+          const diffY = e.changedTouches[0].clientY - touchStartY;
+          
           if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
+            // 🚀 【新規追加】右スワイプ（戻る）の処理
+            if (diffX > 50) {
+              if (currentActiveView === 'view-amazon' || currentActiveView === 'view-history' || currentActiveView === 'view-price') {
+                openView('view-home'); return;
+              }
+              // 月別データ詳細の場合：仕入れ情報タブの時だけ戻る！
+              if (currentActiveView === 'view-monthly' && currentMonthlyTab === 'monthly-purchase') {
+                openView('view-home'); return;
+              }
+            }
+            
+            // 🔄 既存のタブ切り替え処理
+            if (currentActiveView !== 'view-sniper' && currentActiveView !== 'view-watcher' && currentActiveView !== 'view-monthly' && currentActiveView !== 'view-home') return;
+            
             let order, activeContentId;
             if (currentActiveView === 'view-sniper') { order = sniperOrder; activeContentId = document.querySelector(`#view-sniper .tab-content.active`).id; }
             else if (currentActiveView === 'view-watcher') { order = watcherOrder; activeContentId = document.querySelector(`#view-watcher .tab-content.active`).id; }
             else if (currentActiveView === 'view-monthly') { order = monthlyOrder; activeContentId = currentMonthlyTab; }
             else if (currentActiveView === 'view-home') { order = homeOrder; activeContentId = currentHomeMode; }
+            
             let currentIndex = order.indexOf(activeContentId);
             if (diffX < 0 && currentIndex < order.length - 1) swipeToTab(order[currentIndex + 1], currentActiveView);
             else if (diffX > 0 && currentIndex > 0) swipeToTab(order[currentIndex - 1], currentActiveView);
