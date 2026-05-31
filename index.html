@@ -355,7 +355,7 @@
       
       <label>SearchHub : ResearcherのURL</label>
       <input type="url" id="cfgResearcherUrl" placeholder="https://docs.google.com/spreadsheets/...">
-      <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
+      
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
       <label>SearchHub Sniper 極のGASURL</label>
       <input type="url" id="cfgSniperUrl" placeholder="https://script.google.com/macros/.../exec">
@@ -764,10 +764,11 @@
     }
 
     function forceReload(btn) { btn.style.transform = "rotate(360deg)"; setTimeout(() => btn.style.transform = "rotate(0deg)", 500); syncPatrolData(); fetchDashboardData(); }
-   function openConfig() {
+    
+    function openConfig() {
       document.getElementById("cfgKeepa").value = AppStorage.get("sh_keepa", ""); 
       document.getElementById("cfgSsUrl").value = AppStorage.get("sh_ssurl", "");
-      // 👇 この1行を追加！
+      // 🌟 追加：保存されているResearcherURLを枠に入れる
       document.getElementById("cfgResearcherUrl").value = AppStorage.get("sh_researcher_url", ""); 
       document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", ""); 
       document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
@@ -779,16 +780,18 @@
     function saveConfig() {
       AppStorage.set("sh_keepa", document.getElementById("cfgKeepa").value.trim()); 
       AppStorage.set("sh_ssurl", document.getElementById("cfgSsUrl").value.trim());
-      // 👇 この1行を追加！
+      // 🌟 追加：枠に入力されたResearcherURLを保存する
       AppStorage.set("sh_researcher_url", document.getElementById("cfgResearcherUrl").value.trim()); 
       AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim()); 
       AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
       closeConfig(); syncPatrolData(); fetchDashboardData();
     }
+    
     function updateDiscordBtnUI(status) {
       const btn = document.getElementById("dcToggleBtn");
       btn.className = status === "on" ? "header-btn discord-btn discord-on" : "header-btn discord-btn discord-off";
     }
+    
     async function toggleDiscord() {
       const sniperUrl = AppStorage.get("sh_sniper_url", "");
       if (!sniperUrl) return alert("⚙️設定画面から『S(スナイパー)側 GAS URL』を先に登録してな！");
@@ -1534,17 +1537,18 @@ document.getElementById("regPurchaseUrl").value = "";
       resDiv.innerHTML = '<div class="loading-spinner">⌛ リサーチsheetから候補を取得中...</div>';
       document.getElementById('resCount').innerText = "同期中...";
       
-      // 👇 ここを書き換え！
+      // 🌟 ここを変更：ssUrl じゃなく researcherUrl を使う！
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
       
+      // 🌟 ここも変更：設定がない時の警告メッセージも researcherUrl 用に！
       if (!researcherUrl || !targetGasUrl) { 
         resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">⚙️設定からResearcherのURLを登録してな！</div>'; 
         return; 
       }
 
       try {
-        // 👇 送るデータを ssUrl ではなく researcherUrl に変更！
+        // 🌟 ここも変更：送信するデータを ssUrl: researcherUrl に！
         const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getResearcherData', ssUrl: researcherUrl }) });
         const json = await res.json();
         if (json.success) {
@@ -1637,16 +1641,22 @@ document.getElementById("regPurchaseUrl").value = "";
     // 5️⃣ 最後に残ったエリートたちをGASに送信！！
     async function sendEliteItems(btn) {
       if(globalResearcherData.length === 0) return alert("登録する商品がありません！");
-      // ... (中略) ...
+      
+      // 画面で手動編集された「検索キーワード」を最新の状態として取得
+      globalResearcherData.forEach((item, index) => {
+        const kwInput = document.getElementById(`keyword_${index}`);
+        if(kwInput) item.model = kwInput.value.trim(); // F列(model)を上書き
+      });
+
       btn.innerText = "⌛ 送信中...";
       btn.disabled = true;
 
-      // 👇 ここを書き換え！
+      // 🌟 ここを変更：ssUrl じゃなく researcherUrl を使う！
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
       try {
-        // 👇 送るデータを ssUrl ではなく researcherUrl に変更！
+        // 🌟 ここも変更：送信するデータを ssUrl: researcherUrl に！
         const res = await fetch(targetGasUrl, { 
           method: 'POST', 
           body: JSON.stringify({ command: 'registerEliteItems', ssUrl: researcherUrl, items: globalResearcherData }) 
