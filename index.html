@@ -1155,6 +1155,41 @@ document.getElementById("regPurchaseUrl").value = "";
       } catch(err) { select.innerHTML = '<option value="">❌ 通信エラー</option>'; }
     }
 
+// 🚀 URLをペーストした瞬間、自動で商品IDを抜き出してF列に入力する魔法
+    window.autoExtractId = function() {
+      const url = document.getElementById("regPurchaseUrl").value.trim();
+      const idInput = document.getElementById("regPurchaseId");
+      
+      if (!url) return; // URLが空なら何もしない
+
+      let extractedId = "";
+      
+      // ① メルカリ特化（URLの中にmから始まる数字があれば絶対それ）
+      const mercariMatch = url.match(/(m\d{9,})/);
+      if (mercariMatch) {
+        extractedId = mercariMatch[1];
+      } else {
+        // ② その他のサイト（ヤフオク、ヤフフリなど）
+        // 大体のサイトは、URLの「/」で区切られた一番最後が商品IDになってる法則を利用！
+        try {
+          const urlObj = new URL(url);
+          const paths = urlObj.pathname.split('/').filter(p => p !== '');
+          if (paths.length > 0) {
+             let lastPart = paths[paths.length - 1];
+             lastPart = lastPart.split('?')[0]; // 「?」以降の余計なパラメーターをカット
+             extractedId = lastPart;
+          }
+        } catch(e) {
+          // URLの形式じゃない場合はスルー
+        }
+      }
+
+      // 抜き出したIDがあって、かつID欄がまだ空っぽの時だけ自動入力！
+      if (extractedId && !idInput.value) {
+        idInput.value = extractedId;
+      }
+    };
+
     window.executeRegistration = async function() {
       const supplier = document.getElementById("supplierSelect").value;
       if (!supplier) { return alert("仕入れ先を選択してください！"); }
