@@ -1660,20 +1660,35 @@ document.getElementById("regPurchaseUrl").value = "";
 
     // 3️⃣ チェックしたやつ（いらんやつ）をリストから消去！
     function removeCheckedItems() {
-      globalResearcherData = globalResearcherData.filter((item, index) => {
+      const rowsToDelete = [];
+      const remainingItems = [];
+      
+      globalResearcherData.forEach((item, index) => {
         const checkbox = document.getElementById(`check_${index}`);
-        return checkbox && !checkbox.checked; 
+        if (checkbox && checkbox.checked) {
+          rowsToDelete.push(item.rowNum); // 消す行番号を集める
+        } else {
+          remainingItems.push(item);
+        }
       });
       
-      // 💡 ここでGASに「削除後のリスト」を投げて、シートを物理的に綺麗にする！
+      if(rowsToDelete.length === 0) return alert("削除する項目にチェックを入れてな！");
+
+      // 画面のリストから消す
+      globalResearcherData = remainingItems;
+      renderResearcherList();
+      
+      // GASに「この行番号を消せ！」と命令を投げる
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
-      fetch(targetGasUrl, { 
-        method: 'POST', 
-        body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: globalResearcherData }) 
-      });
-
-      renderResearcherList();
+      
+      if (researcherUrl) {
+        fetch(targetGasUrl, { 
+          method: 'POST', 
+          // 子機の doPost の都合上、名前は remainingItems のまま、中身を rowsToDelete で送る裏ワザ！
+          body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: rowsToDelete }) 
+        });
+      }
     }
 
 // 4️⃣ ASINを20件ずつコピーして「別アプリで確認」に変更！
@@ -1702,33 +1717,33 @@ document.getElementById("regPurchaseUrl").value = "";
     async function sendEliteItems(btn) {
       if(globalResearcherData.length === 0) return alert("登録する商品がありません！");
       
-      // 入力されたキーワードを反映
       globalResearcherData.forEach((item, index) => {
         const kwInput = document.getElementById(`keyword_${index}`);
         if(kwInput) item.model = kwInput.value.trim();
       });
 
-      btn.innerText = "⌛ 登録＆シート整理中...";
+      btn.innerText = "⌛ 移動＆シート整理中...";
       btn.disabled = true;
 
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
       try {
-        // 1. 仕入れsheetへ登録
-        const resReg = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'registerEliteItems', ssUrl: researcherUrl, items: globalResearcherData }) });
+        const res = await fetch(targetGasUrl, { 
+          method: 'POST', 
+          body: JSON.stringify({ command: 'registerEliteItems', ssUrl: researcherUrl, items: globalResearcherData }) 
+        });
+        const json = await res.json();
         
-        // 2. リサーチsheetを空にする（remainingItemsを空で送る）
-        const resUpdate = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: [] }) });
-        
-        const jsonReg = await resReg.json();
-        if (jsonReg.success) {
-          alert("✅ 仕入れsheetへ登録し、リサーチsheetを空にしました！");
-          globalResearcherData = [];
+        if (json.success) {
+          alert("✅ 仕入れsheetへの移動が完了しました！\n（リサーチsheetからも削除されました）");
+          globalResearcherData = []; // 画面を空にする
           renderResearcherList();
+        } else {
+          alert("❌ 登録失敗: " + json.message);
         }
       } catch(err) {
-        alert("通信エラー");
+        alert("通信エラーが発生しました");
       }
       btn.innerText = "🚀 残った商品を「仕入れsheet」へ登録！";
       btn.disabled = false;
