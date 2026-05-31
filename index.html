@@ -1659,36 +1659,41 @@ document.getElementById("regPurchaseUrl").value = "";
     }
 
     // 3️⃣ チェックしたやつ（いらんやつ）をリストから消去！
-    function removeCheckedItems() {
+    async function removeCheckedItems() {
       const rowsToDelete = [];
-      const remainingItems = [];
       
       globalResearcherData.forEach((item, index) => {
         const checkbox = document.getElementById(`check_${index}`);
         if (checkbox && checkbox.checked) {
           rowsToDelete.push(item.rowNum); // 消す行番号を集める
-        } else {
-          remainingItems.push(item);
         }
       });
       
       if(rowsToDelete.length === 0) return alert("削除する項目にチェックを入れてな！");
 
-      // 画面のリストから消す
-      globalResearcherData = remainingItems;
-      renderResearcherList();
-      
+      const btn = document.querySelector('button[onclick="removeCheckedItems()"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = "⌛ 削除中...";
+      btn.disabled = true;
+
       // GASに「この行番号を消せ！」と命令を投げる
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
       
       if (researcherUrl) {
-        fetch(targetGasUrl, { 
-          method: 'POST', 
-          // 子機の doPost の都合上、名前は remainingItems のまま、中身を rowsToDelete で送る裏ワザ！
-          body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: rowsToDelete }) 
-        });
+        try {
+          await fetch(targetGasUrl, { 
+            method: 'POST', 
+            body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: rowsToDelete }) 
+          });
+          // 💡 削除完了後、GASから最新のリストを再取得して画面を更新する！（行ズレ完全防止！）
+          await loadResearcherData();
+        } catch (e) {
+          alert("通信エラー");
+        }
       }
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
 
 // 4️⃣ ASINを20件ずつコピーして「別アプリで確認」に変更！
@@ -1722,6 +1727,7 @@ document.getElementById("regPurchaseUrl").value = "";
         if(kwInput) item.model = kwInput.value.trim();
       });
 
+      const originalText = btn.innerText;
       btn.innerText = "⌛ 移動＆シート整理中...";
       btn.disabled = true;
 
@@ -1737,15 +1743,15 @@ document.getElementById("regPurchaseUrl").value = "";
         
         if (json.success) {
           alert("✅ 仕入れsheetへの移動が完了しました！\n（リサーチsheetからも削除されました）");
-          globalResearcherData = []; // 画面を空にする
-          renderResearcherList();
+          // 💡 登録完了後、GASから最新のリストを再取得して画面を更新する！（行ズレ完全防止！）
+          await loadResearcherData();
         } else {
           alert("❌ 登録失敗: " + json.message);
         }
       } catch(err) {
         alert("通信エラーが発生しました");
       }
-      btn.innerText = "🚀 残った商品を「仕入れsheet」へ登録！";
+      btn.innerText = originalText;
       btn.disabled = false;
     }
 
