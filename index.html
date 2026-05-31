@@ -1537,20 +1537,31 @@ document.getElementById("regPurchaseUrl").value = "";
       resDiv.innerHTML = '<div class="loading-spinner">⌛ リサーチsheetから候補を取得中...</div>';
       document.getElementById('resCount').innerText = "同期中...";
       
-      // 🌟 ここを変更：ssUrl じゃなく researcherUrl を使う！
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
       
-      // 🌟 ここも変更：設定がない時の警告メッセージも researcherUrl 用に！
       if (!researcherUrl || !targetGasUrl) { 
         resDiv.innerHTML = '<div class="card" style="text-align:center; color:#e53e3e; font-weight:bold;">⚙️設定からResearcherのURLを登録してな！</div>'; 
         return; 
       }
 
       try {
-        // 🌟 ここも変更：送信するデータを ssUrl: researcherUrl に！
-        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getResearcherData', ssUrl: researcherUrl }) });
-        const json = await res.json();
+        // 💡 iOSのSafari通信弾き対策で headers を追加！
+        const res = await fetch(targetGasUrl, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ command: 'getResearcherData', ssUrl: researcherUrl }) 
+        });
+        
+        // 💡 GASがエラー画面（HTML）を返してないかチェック！
+        const text = await res.text();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch(e) {
+          throw new Error("GASエラー発生中: " + text.substring(0, 40) + "...");
+        }
+
         if (json.success) {
           globalResearcherData = json.data;
           asinCopyIndex = 0;
@@ -1559,7 +1570,11 @@ document.getElementById("regPurchaseUrl").value = "";
           resDiv.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 取得失敗: ' + json.message + '</div>';
         }
       } catch(err) {
-        resDiv.innerHTML = '<div class="card" style="color:#e53e3e; text-align:center;">❌ 通信エラーが発生しました</div>';
+        // 💡 エラーの「本当の理由」を画面に晒し上げる！！
+        resDiv.innerHTML = `<div class="card" style="text-align:center;">
+          <div style="color:#e53e3e; font-weight:bold; margin-bottom:8px;">❌ 通信エラーの正体</div>
+          <div style="font-size:11px; color:#4a5568; background:#f8fafc; padding:8px; border-radius:6px; word-break:break-all;">${err.message}</div>
+        </div>`;
       }
     }
 
