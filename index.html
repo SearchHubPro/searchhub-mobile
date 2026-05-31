@@ -152,7 +152,7 @@
   <div id="ptr-indicator">⬇️ 引っ張って更新...</div>
 
   <div id="loader">
-    <img class="splash-img" src="https://i.ibb.co/G4R4Jz50/image.png" alt="Splash">
+    <img class="splash-img" src="https://i.ibb.co/6RYMyGPS/Chat-GPT-Image-2026-5-25-20-55-41.png" alt="Splash">
     <div class="splash-text">SYSTEM LOADING...</div>
   </div>
 
@@ -922,12 +922,47 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
         // ★ カートのテキストを「情報なし」に変更
         let bbValText = bbUsedPrice > 0 ? '¥' + bbUsedPrice.toLocaleString() : '情報なし';
 
-        const usedOffers = (p.stats.current && p.stats.current[12] !== -1) ? p.stats.current[12] : 0;
+        // ★ Keepaの11番（中古出品者数）を正確に取得
+        const usedOffers = (p.stats.current && p.stats.current[11] !== -1) ? p.stats.current[11] : 0;
+        const usedCountAvg90 = (p.stats.avg90 && p.stats.avg90[11] !== -1) ? p.stats.avg90[11] : usedOffers;
 
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
-        const drops = p.stats.salesRankDrops90 || 0; const score = Math.floor(drops / 3) * 2;
+        const drops = p.stats.salesRankDrops90 || 0; 
+        const mSales = Math.floor(drops / 3);
+
+        // 🚀 シートの「自分流ロジック（7点満点）」を計算
+        let score = 0;
+        if (mSales >= 10) score += 3;
+        else if (mSales >= 5) score += 2;
+        else if (mSales >= 3) score += 1;
+
+        if (drops >= 20) score += 2;
+        else if (drops >= 10) score += 1;
+
+        if (usedOffers >= 1 && usedOffers <= 2) score += 2;
+        else if (usedOffers >= 3 && usedOffers <= 5) score += 1;
+        else if (usedOffers >= 8) score -= 2;
+
+        // 🚨 減点ルールの適用
+        if (score >= 7) {
+          const isPriceDropping = minUsed < avgUsed; // 値崩れ判定
+          const isSellerIncreasing = usedOffers > usedCountAvg90; // ライバル急増判定
+          const isRecentStagnant = (p.stats.salesRankDrops30 || 0) === 0; // 直近30日の動きなし
+
+          if (isPriceDropping || isSellerIncreasing || isRecentStagnant) {
+            score -= 1; 
+          }
+        }
+
+        // 🏆 ランクの割り当てと色の設定
         let rank = 'E', rColor = '#808080';
-        if (score >= 100) { rank = 'SR'; rColor = '#ff4500'; } else if (score >= 50) { rank = 'S'; rColor = '#ff8c00'; } else if (score >= 30) { rank = 'A'; rColor = '#ffd700'; } else if (score >= 15) { rank = 'B'; rColor = '#32cd32'; } else if (score >= 5) { rank = 'C'; rColor = '#1e90ff'; } else if (score >= 1) { rank = 'D'; rColor = '#808080'; }
+        if (score >= 7 && drops >= 30) { rank = 'SR'; rColor = '#a855f7'; } // 紫
+        else if (score >= 7) { rank = 'S'; rColor = '#ff0000'; } // 赤
+        else if (score >= 5) { rank = 'A'; rColor = '#ff8c00'; } // オレンジ
+        else if (score >= 3) { rank = 'B'; rColor = '#32cd32'; } // 緑
+        else if (score === 2) { rank = 'C'; rColor = '#1e90ff'; } // 青
+        else if (score === 1) { rank = 'D'; rColor = '#808080'; } // グレー
+        
         const sizeTier = fbaFee > 650 ? "大型" : "標準";
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
