@@ -1579,6 +1579,7 @@ document.getElementById("regPurchaseUrl").value = "";
     }
 
     // 2️⃣ 画面にリストを描画
+    // 2️⃣ 画面にリストを描画（🌟神UIアップデート版🌟）
     function renderResearcherList() {
       const resDiv = document.getElementById('researcherResult');
       document.getElementById('resCount').innerText = `残候補: ${globalResearcherData.length}件`;
@@ -1590,28 +1591,59 @@ document.getElementById("regPurchaseUrl").value = "";
 
       let html = "";
       globalResearcherData.forEach((item, index) => {
-        let imgHtml = item.img ? `<div style="width:60px; height:60px; background:#fff; border:1px solid #eee; border-radius:6px; padding:2px; flex-shrink:0;"><img src="${item.img}" style="width:100%; height:100%; object-fit:contain;"></div>` : '<div style="width:60px; height:60px; background:#f8fafc; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
+        // 🌟 1. 画像の「？」対策（httpがない場合はAmazonの画像URLを自動補完！）
+        let imgUrl = item.img ? item.img.toString().trim() : '';
+        if (imgUrl && !imgUrl.startsWith('http')) {
+          imgUrl = 'https://images-na.ssl-images-amazon.com/images/I/' + imgUrl.split(',')[0];
+        }
+        let imgHtml = imgUrl ? `<div style="width:60px; height:60px; background:#fff; border:1px solid #eee; border-radius:6px; padding:2px; flex-shrink:0;"><img src="${imgUrl}" style="width:100%; height:100%; object-fit:contain;" onerror="this.onerror=null;this.src='https://i.ibb.co/G4R4Jz50/image.png';"></div>` : '<div style="width:60px; height:60px; background:#f8fafc; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
+
+        // 🌟 4. ランク色分け（指定カラー）
+        let rankColor = '#000000'; // その他は黒
+        let rankText = item.rank ? item.rank.toString().toUpperCase() : '';
+        if (rankText === 'SR') rankColor = '#a855f7'; // 紫
+        else if (rankText === 'S') rankColor = '#e53e3e';  // 赤
+        else if (rankText === 'A') rankColor = '#f7941d'; // オレンジ
+        else if (rankText === 'B') rankColor = '#3182ce'; // 青
+        else if (rankText === 'C') rankColor = '#07A27B'; // 緑
+
+        // 🌟 2. サイズ区分（標準は緑、大型は赤）
+        let sizeTier = item.size ? item.size.toString() : '標準';
+        let sizeColor = sizeTier.includes('大型') ? '#e53e3e' : '#07A27B';
 
         html += `
-        <div class="card" id="resCard_${index}" style="display:flex; align-items:flex-start; gap:12px; padding:12px; margin-bottom:10px; border-left:4px solid #a855f7;">
+        <div class="card" id="resCard_${index}" style="display:flex; align-items:flex-start; gap:12px; padding:12px; margin-bottom:10px; border-left:5px solid ${rankColor};">
           <input type="checkbox" id="check_${index}" style="width:28px; height:28px; margin-top:15px;">
           
           <div style="flex:1; min-width:0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <span style="font-size:11px; font-weight:bold; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">${item.asin}</span>
-              <span style="font-size:11px; font-weight:bold; color:#e53e3e;">${item.rank}ランク</span>
+              <span style="font-size:11px; font-weight:bold; color:${rankColor}; border:1px solid ${rankColor}; padding:1px 6px; border-radius:4px;">${item.rank}ランク</span>
             </div>
             
             <div style="display:flex; gap:10px; margin-bottom:8px;">
               ${imgHtml}
-              <div style="font-size:12px; font-weight:bold; color:#1a365d; line-height:1.4;">${escapeHtml(item.title)}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:12px; font-weight:bold; color:#1a365d; line-height:1.4; margin-bottom:4px; word-break:break-all;">${escapeHtml(item.title)}</div>
+                <span class="badge" style="background:${sizeColor}; color:white; padding:3px 8px; font-size:9px;">${escapeHtml(sizeTier)}</span>
+              </div>
             </div>
             
             <div style="font-size:10px; font-weight:bold; color:#718096; margin-bottom:2px;">検索キーワード (手動調整OK)</div>
             <input type="text" id="keyword_${index}" value="${escapeHtml(item.model)}" style="width:100%; padding:8px; border:1px solid #cbd5e0; border-radius:4px; font-size:13px; font-weight:bold; background:#fff; outline:none; margin-bottom:8px; box-sizing:border-box;">
             
-            <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:6px; border-radius:6px; border:1px solid #e2e8f0;">
-              <span style="font-size:11px; font-weight:bold; color:#4a5568;">最安: ¥${Number(item.minUsed).toLocaleString()}</span>
+            <div style="background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:8px;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:11px; font-weight:bold; color:#4a5568; border-bottom:1px dashed #cbd5e0; padding-bottom:4px;">
+                <span>予定売価: ¥${Number(item.sellPrice).toLocaleString()}</span>
+                <span style="color:#07A27B;">仕入値: ¥${Number(item.buyPrice).toLocaleString()}</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold; color:#4a5568;">
+                <span>最安売価: ¥${Number(item.minUsed).toLocaleString()}</span>
+                <span style="color:#07A27B;">最安仕入: ¥${Number(item.minBuyPrice).toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <div style="text-align:right;">
               <a href="https://keepa.com/#!product/5-${item.asin}" target="_blank" style="background:#55a676; color:white; text-decoration:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold;"><i class="fas fa-chart-line"></i> Keepa</a>
             </div>
           </div>
