@@ -22,12 +22,10 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Meiryo", sans-serif; 
     margin: 0; 
     padding: 0; 
-    background-color: #f0f2f5; /* 👈 ここを元のライトグレーに戻す！ */
+    background-color: #ffffff; /* 👈 起動時はとりあえず白にしておく！ */
     color: #333; 
-    /* 👇 下のセーフエリアを自動調整する魔法はそのまま残す！ */
     padding-bottom: env(safe-area-inset-bottom); 
     min-height: 100vh;
-    min-height: -webkit-fill-available;
   }
     
     .header-wrapper { position: sticky; top: 0; z-index: 100; background-color: #000000; padding-top: env(safe-area-inset-top); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -577,7 +575,13 @@
       const loader = document.getElementById("loader");
       if (loader && loader.style.display !== "none") {
         loader.style.opacity = "0";
-        setTimeout(() => { loader.style.display = "none"; }, 500);
+        setTimeout(() => { 
+          loader.style.display = "none"; 
+          
+          // 👇 ここに追加！ローディングが消えた瞬間に裏地をグレーにする！
+          document.body.style.backgroundColor = "#f0f2f5"; 
+          
+        }, 500);
       }
     }
 
