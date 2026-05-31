@@ -1660,23 +1660,22 @@ document.getElementById("regPurchaseUrl").value = "";
 
     // 3️⃣ チェックしたやつ（いらんやつ）をリストから消去！
     async function removeCheckedItems() {
-      const rowsToDelete = [];
+      const asinsToDelete = [];
       
       globalResearcherData.forEach((item, index) => {
         const checkbox = document.getElementById(`check_${index}`);
         if (checkbox && checkbox.checked) {
-          rowsToDelete.push(item.rowNum); // 消す行番号を集める
+          asinsToDelete.push(item.asin); // 💡 行番号ではなく「ASIN」を収集！
         }
       });
       
-      if(rowsToDelete.length === 0) return alert("削除する項目にチェックを入れてな！");
+      if(asinsToDelete.length === 0) return alert("削除する項目にチェックを入れてな！");
 
       const btn = document.querySelector('button[onclick="removeCheckedItems()"]');
       const originalText = btn.innerHTML;
       btn.innerHTML = "⌛ 削除中...";
       btn.disabled = true;
 
-      // GASに「この行番号を消せ！」と命令を投げる
       const researcherUrl = AppStorage.get("sh_researcher_url", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
       
@@ -1684,9 +1683,10 @@ document.getElementById("regPurchaseUrl").value = "";
         try {
           await fetch(targetGasUrl, { 
             method: 'POST', 
-            body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: rowsToDelete }) 
+            // 💡 子機GASの都合上、変数の名前は remainingItems のままやけど、中身は「消すASINのリスト」を送る！
+            body: JSON.stringify({ command: 'updateResearcherSheet', ssUrl: researcherUrl, remainingItems: asinsToDelete }) 
           });
-          // 💡 削除完了後、GASから最新のリストを再取得して画面を更新する！（行ズレ完全防止！）
+          // 削除完了後、GASから最新のリストを再取得
           await loadResearcherData();
         } catch (e) {
           alert("通信エラー");
