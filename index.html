@@ -1004,8 +1004,8 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
         let bbValText = bbUsedPrice > 0 ? '¥' + bbUsedPrice.toLocaleString() : '情報なし';
 
         // ★ Keepaの11番（中古出品者数）を正確に取得
-        const usedOffers = (p.stats.current && p.stats.current[11] !== -1) ? p.stats.current[11] : 0;
-        const usedCountAvg90 = (p.stats.avg90 && p.stats.avg90[11] !== -1) ? p.stats.avg90[11] : usedOffers;
+        const usedOffers = (p.stats.current && p.stats.current[12] !== -1) ? p.stats.current[12] : 0;
+        const usedCountAvg90 = (p.stats.avg90 && p.stats.avg90[12] !== -1) ? p.stats.avg90[12] : usedOffers;
 
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
         const drops = p.stats.salesRankDrops90 || 0; 
