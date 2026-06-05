@@ -706,10 +706,10 @@
       const urlSniper = AppStorage.get("sh_sniper_url", ""); 
       const url10 = AppStorage.get("sh_tensite_url", "");
       const payload = JSON.stringify({ command: 'saveViewedLinks', links: newLinks });
-      
-      // 🚨 【最重要】Safariのサイレント通信ブロック＆CORSエラーを回避する魔法のヘッダー
+
       const options = { 
         method: 'POST', 
+        mode: 'no-cors', // 🚨 【超重要】これがないとブラウザが絶対に通信を弾く！！
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: payload 
       };
