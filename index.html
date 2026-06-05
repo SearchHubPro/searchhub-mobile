@@ -1844,7 +1844,7 @@ document.getElementById("regPurchaseUrl").value = "";
 　　
 　　async function updateKeepaInventory() {
   const btn = document.getElementById('keepaBtn');
-  if(btn) { btn.disabled = true; btn.innerText = "同期中..."; }
+  if(btn) { btn.disabled = true; btn.innerText = "送信中..."; }
 
   const ssUrl = AppStorage.get("sh_ssurl", "");
   let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
@@ -1858,33 +1858,17 @@ document.getElementById("regPurchaseUrl").value = "";
   try {
     const res = await fetch(targetGasUrl, {
       method: 'POST',
-      body: JSON.stringify({ 
-        command: 'fetchKeepaDataToSheet', // 👈 ここを確実に合わせる
-        ssUrl: ssUrl 
-      })
+      body: JSON.stringify({ command: 'checkKeepaA1', ssUrl: ssUrl })
     });
-
-    // 🚨 修正ポイント: いきなりJSONにせず、まずは生のテキストとして受け取る！
-    const rawText = await res.text();
-    
-    let json;
-    try {
-      json = JSON.parse(rawText);
-    } catch(e) {
-      // JSONじゃなかった場合（GASの致命的エラーなど）の本当の理由を表示
-      alert("❌ GASの裏側でエラーが起きてるわ:\n" + rawText.substring(0, 100));
-      if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
-      return;
-    }
+    const json = await res.json();
 
     if (json.success) {
-      alert("✅ Keepaから最新データに更新したで！");
-      loadInventoryPrice(); // 画面を更新
+      alert("✅ Managerシートの「価格改定」A1にチェックを入れたで！");
     } else {
       alert("❌ エラー: " + json.message);
     }
   } catch(err) {
-    alert("❌ 通信エラーが発生しました: " + err.message);
+    alert("❌ 通信エラーが発生しました");
   } finally {
     if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
   }
