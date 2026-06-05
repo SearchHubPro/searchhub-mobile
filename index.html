@@ -198,7 +198,7 @@
 
     <div class="dashboard-grid">
       <button class="dash-btn" onclick="openView('view-amazon')"><i class="fab fa-amazon" style="color:#ff9900;"></i>リサーチ</button>
-      <button class="dash-btn" onclick="openView('view-researcher'); loadResearcherData();"><i class="fas fa-clipboard-check" style="color:#a855f7;"></i>Researcher精査</button>
+      <button class="dash-btn" onclick="openView('view-researcher'); loadResearcherData();"><i class="fas fa-clipboard-check" style="color:#a855f7;"></i>Researcher精査<span class="dash-dot" id="dash-dot-researcher"></span></button>
       <button class="dash-btn" onclick="openView('view-price')"><i class="fas fa-yen-sign" style="color:#1a365d;"></i>価格改定</button>
       <button class="dash-btn" onclick="openView('view-monthly')"><i class="fas fa-chart-bar" style="color:#55a676;"></i>月別データ詳細</button>
       <button class="dash-btn" onclick="openView('view-watcher')"><i class="fas fa-eye" style="color:#07A27B;"></i>Watcher<span class="dash-dot" id="dash-dot-watcher"></span></button>
@@ -462,6 +462,17 @@
               monthArea.appendChild(btn);
             });
           }
+
+          // 💡 追加：Researcherの赤丸連動
+          const dashDotRes = document.getElementById('dash-dot-researcher');
+          if (dashDotRes) {
+            if (homeData.researcherActive === true) {
+              dashDotRes.classList.add('active');
+            } else {
+              dashDotRes.classList.remove('active');
+            }
+          }
+
           updateHomeView();
         }
       } catch(err) {
