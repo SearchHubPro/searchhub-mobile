@@ -1844,7 +1844,7 @@ document.getElementById("regPurchaseUrl").value = "";
 　　
 　　async function updateKeepaInventory() {
   const btn = document.getElementById('keepaBtn');
-  if(btn) { btn.disabled = true; btn.innerText = "送信中..."; }
+  if(btn) { btn.disabled = true; btn.innerText = "エンジン点火中..."; }
 
   const ssUrl = AppStorage.get("sh_ssurl", "");
   let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
@@ -1856,14 +1856,15 @@ document.getElementById("regPurchaseUrl").value = "";
   }
 
   try {
+    // 🎯 直接エンジンを叩き起こす命令を送信！
     const res = await fetch(targetGasUrl, {
       method: 'POST',
-      body: JSON.stringify({ command: 'checkKeepaA1', ssUrl: ssUrl })
+      body: JSON.stringify({ command: 'startKeepaDirect', ssUrl: ssUrl })
     });
     const json = await res.json();
 
     if (json.success) {
-      alert("✅ Managerシートの「価格改定」A1にチェックを入れたで！");
+      alert("✅ Keepaの在庫更新エンジンを直接起動したで！");
     } else {
       alert("❌ エラー: " + json.message);
     }
