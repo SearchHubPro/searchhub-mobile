@@ -296,8 +296,19 @@
   <div id="view-price" class="view">
     <div class="content">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px;">
+        
         <span style="font-size:12px; font-weight:bold; color:#4a5568;" id="inventoryCount">在庫を読み込み中...</span>
-        <button onclick="loadInventoryPrice()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold;"><i class="fas fa-sync-alt"></i> 更新</button>
+        
+        <div style="display:flex; gap:8px;">
+          <button onclick="loadInventoryPrice()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">
+            <i class="fas fa-sync-alt"></i> 更新
+          </button>
+          
+          <button id="keepaBtn" onclick="updateKeepaInventory()" style="background:#07A27B; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.2s;">
+            <i class="fas fa-cloud-download-alt"></i> 在庫更新 (Keepa)
+          </button>
+        </div>
+
       </div>
       <input type="text" id="price-search-kw" class="search-bar-only" placeholder="ASINや商品名で一発検索..." oninput="invCurrentPage=1; renderInventoryList();">
       
@@ -1830,6 +1841,27 @@ document.getElementById("regPurchaseUrl").value = "";
         ptrEl.style.top = '-50px'; 
       }
     }, {passive: true});
+　　
+　　function updateKeepaInventory() {
+  const btn = document.getElementById('keepaBtn');
+  btn.disabled = true;
+  btn.innerText = "同期中...";
+
+  google.script.run
+    .withSuccessHandler(() => {
+      btn.disabled = false;
+      btn.innerText = "在庫更新 (Keepa)";
+      alert("✅ Keepaから最新データに更新したで！\nシートを確認してみてな。");
+    })
+    .withFailureHandler((err) => {
+      btn.disabled = false;
+      btn.innerText = "在庫更新 (Keepa)";
+      alert("❌ エラーが発生しました: " + err.message);
+    })
+    // 🎯 子機にある既存の関数をそのまま呼び出す！
+    .fetchKeepaDataToSheet(); 
+}
+
   </script>
 
   <script type="module">
