@@ -1853,10 +1853,10 @@ document.getElementById("regPurchaseUrl").value = "";
 
       const ssUrl = AppStorage.get("sh_ssurl", "");
       const keepaKey = AppStorage.get("sh_keepa", ""); 
-      const sellerId = AppStorage.get("sh_seller_id", ""); // 👈追加
+      const sellerId = AppStorage.get("sh_seller_id", "");
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
-      if (!ssUrl || !targetGasUrl || !keepaKey || !sellerId) { // 👈条件追加
+      if (!ssUrl || !targetGasUrl || !keepaKey || !sellerId) {
         alert("⚙️設定画面からURL、Keepaキー、セラーIDを登録してな！");
         if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
         return;
@@ -1865,13 +1865,14 @@ document.getElementById("regPurchaseUrl").value = "";
       try {
         const res = await fetch(targetGasUrl, {
           method: 'POST',
-          // 👈 sellerId も一緒に送る
           body: JSON.stringify({ command: 'startKeepaDirect', ssUrl: ssUrl, keepaKey: keepaKey, sellerId: sellerId })
         });
         const json = await res.json();
 
         if (json.success) {
-          alert("✅ Keepaの在庫更新エンジンを直接起動したで！\n" + json.message);
+          // 🎯 成功したらボタンの文字を変えて、即座に画面の再読み込みを自動発動させる！
+          if(btn) { btn.innerText = "✅完了! 再読込中..."; }
+          await loadInventoryPrice(); 
         } else {
           alert("❌ エラー: " + json.message);
         }
