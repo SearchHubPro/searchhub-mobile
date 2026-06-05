@@ -300,12 +300,12 @@
         <span style="font-size:12px; font-weight:bold; color:#4a5568;" id="inventoryCount">在庫を読み込み中...</span>
         
         <div style="display:flex; gap:8px;">
-          <button onclick="loadInventoryPrice()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">
-            <i class="fas fa-sync-alt"></i> 更新
+          <button id="keepaBtn" onclick="updateKeepaInventory()" style="background:#07A27B; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.2s;">
+            <i class="fas fa-cloud-download-alt"></i> 在庫更新
           </button>
           
-          <button id="keepaBtn" onclick="updateKeepaInventory()" style="background:#07A27B; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; transition:0.2s;">
-            <i class="fas fa-cloud-download-alt"></i> 在庫更新 (Keepa)
+          <button onclick="loadInventoryPrice()" style="background:#1a365d; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer;">
+            <i class="fas fa-sync-alt"></i> 更新
           </button>
         </div>
 
@@ -1849,7 +1849,7 @@ document.getElementById("regPurchaseUrl").value = "";
 　　
 　　async function updateKeepaInventory() {
       const btn = document.getElementById('keepaBtn');
-      if(btn) { btn.disabled = true; btn.innerText = "エンジン点火中..."; }
+      if(btn) { btn.disabled = true; btn.innerText = "更新中..."; }
 
       const ssUrl = AppStorage.get("sh_ssurl", "");
       const keepaKey = AppStorage.get("sh_keepa", ""); 
