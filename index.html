@@ -373,6 +373,9 @@
       <label>SearchHub : WatcherのGASURL</label>
       <input type="url" id="cfg10SiteUrl" placeholder="https://script.google.com/macros/.../exec">
       <div style="border-top:1px dashed #ccc; margin-top:15px; padding-top:5px;"></div>
+　　　<label>AmazonセラーID</label>
+      <input type="text" id="cfgSellerId" placeholder="A1234567890XYZなど">
+      <button onclick="enablePushNotifications(this)" style="width:100%; ...">
       
       <button onclick="enablePushNotifications(this)" style="width:100%; background:#ff9900; color:white; padding:10px; border:none; border-radius:6px; font-weight:bold; margin-top:10px; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🔔 スマホに通知を送る許可をする</button>
       <div class="modal-actions">
@@ -826,6 +829,7 @@
       document.getElementById("cfgResearcherUrl").value = AppStorage.get("sh_researcher_url", ""); 
       document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", ""); 
       document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
+　　　document.getElementById("cfgSellerId").value = AppStorage.get("sh_seller_id", "");
       document.getElementById("configModal").style.display = "flex";
     }
 
@@ -838,6 +842,7 @@
       AppStorage.set("sh_researcher_url", document.getElementById("cfgResearcherUrl").value.trim()); 
       AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim()); 
       AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
+　　　AppStorage.set("sh_seller_id", document.getElementById("cfgSellerId").value.trim());
       closeConfig(); syncPatrolData(); fetchDashboardData();
     }
     
@@ -1847,23 +1852,21 @@ document.getElementById("regPurchaseUrl").value = "";
       if(btn) { btn.disabled = true; btn.innerText = "エンジン点火中..."; }
 
       const ssUrl = AppStorage.get("sh_ssurl", "");
-      // 👈 【追加】スマホに保存されてるKeepaキーを取得！
       const keepaKey = AppStorage.get("sh_keepa", ""); 
+      const sellerId = AppStorage.get("sh_seller_id", ""); // 👈追加
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
-      // 👈 【修正】URLかKeepaキーがない場合はエラー弾き！
-      if (!ssUrl || !targetGasUrl || !keepaKey) {
-        alert("⚙️設定画面からURLとKeepa APIキーを登録してな！");
+      if (!ssUrl || !targetGasUrl || !keepaKey || !sellerId) { // 👈条件追加
+        alert("⚙️設定画面からURL、Keepaキー、セラーIDを登録してな！");
         if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
         return;
       }
 
       try {
-        // 🎯 直接エンジンを叩き起こす命令を送信！
         const res = await fetch(targetGasUrl, {
           method: 'POST',
-          // 👈 【修正】ssUrlと一緒に keepaKey もGASに送る！
-          body: JSON.stringify({ command: 'startKeepaDirect', ssUrl: ssUrl, keepaKey: keepaKey })
+          // 👈 sellerId も一緒に送る
+          body: JSON.stringify({ command: 'startKeepaDirect', ssUrl: ssUrl, keepaKey: keepaKey, sellerId: sellerId })
         });
         const json = await res.json();
 
