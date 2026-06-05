@@ -694,8 +694,22 @@
         globalViewedLinks.push(key);
         if (globalViewedLinks.length > 500) globalViewedLinks.shift();
         AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
+        
+        // 💡 追加：クリックした瞬間、裏側でこっそりGASの共通メモ帳にも送る！
+        syncMarkAsReadToGAS([key]);
       }
       recalcBadges(); 
+    }
+
+    // 💡 新規追加：GASに既読データを送る通信専用関数
+    function syncMarkAsReadToGAS(newLinks) {
+      const urlSniper = AppStorage.get("sh_sniper_url", ""); 
+      const url10 = AppStorage.get("sh_tensite_url", "");
+      const payload = JSON.stringify({ command: 'saveViewedLinks', links: newLinks });
+
+      // SniperとWatcherの両方に送信（裏側で動かすので画面は止まらない！）
+      if (urlSniper) fetch(urlSniper, { method: 'POST', body: payload }).catch(e => {});
+      if (url10) fetch(url10, { method: 'POST', body: payload }).catch(e => {});
     }
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -739,6 +753,17 @@
         if (url10) fetchPromises.push(fetch(url10 + "?command=mobileData" + cacheBuster).then(r => r.json()).catch(() => null)); else fetchPromises.push(Promise.resolve(null));
         const [resSniper, res10] = await Promise.all(fetchPromises);
         hideLoader();
+
+        // 💡 追加：GASから送られてきた「みんなの共通既読リスト」を受け取って合体させる！
+        let sharedLinks = [];
+        if (resSniper && resSniper.viewedLinks) sharedLinks = sharedLinks.concat(resSniper.viewedLinks);
+        if (res10 && res10.viewedLinks) sharedLinks = sharedLinks.concat(res10.viewedLinks);
+        
+        if (sharedLinks.length > 0) {
+          globalViewedLinks = [...new Set([...globalViewedLinks, ...sharedLinks])].slice(-500);
+          AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
+        }
+
         let mergedSites = {};
         if (resSniper && !resSniper.error && resSniper.sites) {
           mergedSites['Sメルカリ'] = resSniper.sites['メルカリ'] || []; mergedSites['Sヤフフリ'] = resSniper.sites['ヤフーフリマ'] || []; mergedSites['Sオフモ'] = resSniper.sites['オフモール'] || [];
