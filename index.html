@@ -1843,37 +1843,41 @@ document.getElementById("regPurchaseUrl").value = "";
     }, {passive: true});
 　　
 　　async function updateKeepaInventory() {
-  const btn = document.getElementById('keepaBtn');
-  if(btn) { btn.disabled = true; btn.innerText = "エンジン点火中..."; }
+      const btn = document.getElementById('keepaBtn');
+      if(btn) { btn.disabled = true; btn.innerText = "エンジン点火中..."; }
 
-  const ssUrl = AppStorage.get("sh_ssurl", "");
-  let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      // 👈 【追加】スマホに保存されてるKeepaキーを取得！
+      const keepaKey = AppStorage.get("sh_keepa", ""); 
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
-  if (!ssUrl || !targetGasUrl) {
-    alert("⚙️設定画面からURLを登録してな！");
-    if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
-    return;
-  }
+      // 👈 【修正】URLかKeepaキーがない場合はエラー弾き！
+      if (!ssUrl || !targetGasUrl || !keepaKey) {
+        alert("⚙️設定画面からURLとKeepa APIキーを登録してな！");
+        if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
+        return;
+      }
 
-  try {
-    // 🎯 直接エンジンを叩き起こす命令を送信！
-    const res = await fetch(targetGasUrl, {
-      method: 'POST',
-      body: JSON.stringify({ command: 'startKeepaDirect', ssUrl: ssUrl })
-    });
-    const json = await res.json();
+      try {
+        // 🎯 直接エンジンを叩き起こす命令を送信！
+        const res = await fetch(targetGasUrl, {
+          method: 'POST',
+          // 👈 【修正】ssUrlと一緒に keepaKey もGASに送る！
+          body: JSON.stringify({ command: 'startKeepaDirect', ssUrl: ssUrl, keepaKey: keepaKey })
+        });
+        const json = await res.json();
 
-    if (json.success) {
-      alert("✅ Keepaの在庫更新エンジンを直接起動したで！");
-    } else {
-      alert("❌ エラー: " + json.message);
+        if (json.success) {
+          alert("✅ Keepaの在庫更新エンジンを直接起動したで！\n" + json.message);
+        } else {
+          alert("❌ エラー: " + json.message);
+        }
+      } catch(err) {
+        alert("❌ 通信エラーが発生しました");
+      } finally {
+        if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
+      }
     }
-  } catch(err) {
-    alert("❌ 通信エラーが発生しました");
-  } finally {
-    if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
-  }
-}
 
   </script>
 
