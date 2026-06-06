@@ -454,45 +454,52 @@
     };
 
     async function fetchDashboardData() {
-      const ssUrl = AppStorage.get("sh_ssurl", "");
-      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
-      if (!ssUrl || !targetGasUrl) return;
+  const ssUrl = AppStorage.get("sh_ssurl", "");
+  // 💡 修正：スマホに保存されているResearcherのURLも引っ張り出す
+  const resUrl = AppStorage.get("sh_researcher_url", ""); 
+  
+  let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+  if (!ssUrl || !targetGasUrl) return;
 
-      try {
-        const res = await fetch(targetGasUrl, { method: 'POST', body: JSON.stringify({ command: 'getDashboardData', ssUrl: ssUrl }) });
-        const json = await res.json();
-        if (json.success && json.data) {
-          homeData = json.data;
-          if (homeData.availableMonths.length > 0) {
-            currentHomeMonth = homeData.availableMonths[0];
-            
-            const monthArea = document.getElementById('homeMonthTabsArea');
-            monthArea.innerHTML = '';
-            homeData.availableMonths.forEach(m => {
-              const btn = document.createElement('button');
-              btn.className = `home-month-btn ${m === currentHomeMonth ? 'active' : ''}`;
-              btn.innerText = m;
-              btn.onclick = function() { switchHomeMonth(m, this); };
-              monthArea.appendChild(btn);
-            });
-          }
-
-          // 💡 追加：Researcherの赤丸連動
-          const dashDotRes = document.getElementById('dash-dot-researcher');
-          if (dashDotRes) {
-            if (homeData.researcherActive === true) {
-              dashDotRes.classList.add('active');
-            } else {
-              dashDotRes.classList.remove('active');
-            }
-          }
-
-          updateHomeView();
-        }
-      } catch(err) {
-        console.error("Dashboard fetch error", err);
+  try {
+    // 💡 修正：GASに送るデータの中に `researcherUrl: resUrl` をしっかり混ぜてあげる！
+    const res = await fetch(targetGasUrl, { 
+      method: 'POST', 
+      body: JSON.stringify({ command: 'getDashboardData', ssUrl: ssUrl, researcherUrl: resUrl }) 
+    });
+    const json = await res.json();
+    if (json.success && json.data) {
+      homeData = json.data;
+      if (homeData.availableMonths.length > 0) {
+        currentHomeMonth = homeData.availableMonths[0];
+        
+        const monthArea = document.getElementById('homeMonthTabsArea');
+        monthArea.innerHTML = '';
+        homeData.availableMonths.forEach(m => {
+          const btn = document.createElement('button');
+          btn.className = `home-month-btn ${m === currentHomeMonth ? 'active' : ''}`;
+          btn.innerText = m;
+          btn.onclick = function() { switchHomeMonth(m, this); };
+          monthArea.appendChild(btn);
+        });
       }
+
+      // 💡 Researcherの赤丸連動（ここは今のままでOK）
+      const dashDotRes = document.getElementById('dash-dot-researcher');
+      if (dashDotRes) {
+        if (homeData.researcherActive === true) {
+          dashDotRes.classList.add('active');
+        } else {
+          dashDotRes.classList.remove('active');
+        }
+      }
+
+      updateHomeView();
     }
+  } catch(err) {
+    console.error("Dashboard fetch error", err);
+  }
+}
 
     function updateHomeView() {
       const contentArea = document.getElementById('homeGraphContent');
