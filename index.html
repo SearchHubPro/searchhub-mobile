@@ -166,7 +166,7 @@
   <div class="header-wrapper">
     <div class="header">
       <div class="header-left">
-        <button class="header-btn" id="backBtn" style="display:none;" onclick="openView('view-home')"><i class="fas fa-chevron-left"></i></button>
+        <button class="header-btn" id="backBtn" style="display:none;" onclick="goBack()"><i class="fas fa-chevron-left"></i></button>
         <button class="header-btn" onclick="openConfig()"><i class="fas fa-cog"></i></button>
         <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
       </div>
@@ -640,15 +640,47 @@
       }
     }
 
-    function openView(viewId) {
+    let viewHistory = ['view-home'];
+
+    function goBack() {
+      if (viewHistory.length > 1) {
+        viewHistory.pop(); // 今の画面を捨てる
+        const prev = viewHistory[viewHistory.length - 1];
+        openView(prev, true); // 履歴を追加せずに戻る
+        
+        // 戻った時のスクロール位置を復元
+        setTimeout(() => { 
+          const savedScroll = AppStorage.get("sh_scroll_pos_" + prev, 0);
+          window.scrollTo(0, parseInt(savedScroll, 10)); 
+        }, 50);
+      } else {
+        openView('view-home');
+      }
+    }
+
+    function openView(viewId, isBack = false) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(viewId).classList.add('active');
+      
+      // 移動前のスクロール位置を記憶しておく
+      if (!isBack && currentActiveView) {
+         AppStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
+      }
+      
       currentActiveView = viewId;
       
+      // 履歴管理
+      if (!isBack) {
+        if (viewHistory[viewHistory.length - 1] !== viewId) {
+          viewHistory.push(viewId);
+        }
+      }
+      if (viewId === 'view-home') viewHistory = ['view-home'];
+      AppStorage.set("sh_view_history", JSON.stringify(viewHistory));
+
       const titleEl = document.getElementById('headerTitle');
       const backBtn = document.getElementById('backBtn');
       
-      // 🚀 ステップ①: 画面切り替え時のタイトルを「SearchHub Mobile」等に変更
       if(viewId === 'view-home') {
         backBtn.style.display = 'none';
         titleEl.innerText = 'SearchHub Mobile'; 
@@ -660,7 +692,7 @@
         else if(viewId === 'view-price') titleEl.innerText = '価格改定';
         else if(viewId === 'view-history') titleEl.innerText = '販売履歴リサーチ';
         else if(viewId === 'view-monthly') titleEl.innerText = '月別データ詳細'; 
-        else if(viewId === 'view-researcher') titleEl.innerText = 'Researcher精査'; // 🌟 Researcher精査タイトル
+        else if(viewId === 'view-researcher') titleEl.innerText = 'Researcher精査';
       }
 
       if (viewId === 'view-price') {
@@ -669,13 +701,18 @@
       if (viewId === 'view-monthly') {
         if (globalMonthlyData.purchase.length === 0 && globalMonthlyData.sales.length === 0) loadMonthlyData(); else renderMonthlyData();
       }
-      if (viewId === 'view-amazon') {
+      // バックで戻ってきた時は検索欄をリセットしない
+      if (viewId === 'view-amazon' && !isBack) {
         document.getElementById('amazonKw').value = '';
         document.getElementById('amazonResult').style.display = 'none';
         document.getElementById('amazonHistoryArea').style.display = 'block';
         loadAmazonHistory();
       }
-      window.scrollTo(0,0);
+      
+      // バックで戻ってきた時は一番上に強制スクロールしない！
+      if (!isBack) {
+        window.scrollTo(0,0);
+      }
       AppStorage.set("sh_last_view", viewId);
     }
 
@@ -742,15 +779,22 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
+      try { viewHistory = JSON.parse(AppStorage.get("sh_view_history", '["view-home"]')); } catch(e) { viewHistory = ['view-home']; } // 🌟 履歴も復元
+      
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
       
-      // 🚀 ステップ①: 初期のタイトルを「SearchHub Mobile」に
       document.getElementById('headerTitle').innerText = 'SearchHub Mobile';
 
-      // 🌟 追加：前回開いていた画面とタブを復元する！
+      // 🌟 修正：起動時は isBack = true 扱いにして画面の一番上に吹っ飛ぶのを防ぐ！
       const lastView = AppStorage.get("sh_last_view", "view-home");
-      openView(lastView);
+      openView(lastView, true);
+      
+      // スクロール位置も復元
+      setTimeout(() => { 
+        const savedScroll = AppStorage.get("sh_scroll_pos_" + lastView, 0);
+        window.scrollTo(0, parseInt(savedScroll, 10)); 
+      }, 100);
 
       const lastSniperTab = AppStorage.get("sh_last_sniper_tab", "sniper-mercari");
       const sniperBtn = document.querySelector(`button[onclick*="'${lastSniperTab}'"]`);
@@ -760,12 +804,13 @@
       const watcherBtn = document.querySelector(`button[onclick*="'${lastWatcherTab}'"]`);
       if(watcherBtn) switchTab(lastWatcherTab, watcherBtn, 'view-watcher');
 
-      // 🌟 追加：スクロール位置を常に記録しておく（裏でこっそり動く）
+      // 🌟 修正：画面ごとにスクロール位置を分けて記録する！
       window.addEventListener('scroll', () => {
-        AppStorage.set("sh_scroll_pos", window.scrollY);
+        AppStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
       }, {passive: true});
 
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
+      // ...(これ以下は既存のコードへ続く)...
       
       if(urlSniper || url10) { fetchDashboardData(); }
 
@@ -790,8 +835,7 @@
 
     async function syncPatrolData() {
       // 🌟 追加：現在のスクロール位置を確保しておく
-      const currentScrollY = window.scrollY || AppStorage.get("sh_scroll_pos", 0);
-
+      const currentScrollY = window.scrollY || AppStorage.get("sh_scroll_pos_" + currentActiveView, 0);
       document.getElementById("lastUpdate").innerText = "データ同期中...";
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
       if(!urlSniper && !url10) return;
