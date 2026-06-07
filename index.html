@@ -413,6 +413,11 @@
       set: function(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
     };
 
+    const TempStorage = {
+      get: function(key, def) { try { return sessionStorage.getItem(key) || def; } catch(e) { return def; } },
+      set: function(key, val) { try { sessionStorage.setItem(key, val); } catch(e) {} }
+    };
+
     const siteKeyMap = {
       'sniper-mercari': 'Sメルカリ', 'sniper-paypay': 'Sヤフフリ', 'sniper-offmall': 'Sオフモ',
       'watcher-mercari': 'メルカリ', 'watcher-paypay': 'ヤフーフリマ', 'watcher-yahoo': 'ヤフオク',
@@ -644,13 +649,12 @@
 
     function goBack() {
       if (viewHistory.length > 1) {
-        viewHistory.pop(); // 今の画面を捨てる
+        viewHistory.pop();
         const prev = viewHistory[viewHistory.length - 1];
-        openView(prev, true); // 履歴を追加せずに戻る
+        openView(prev, true);
         
-        // 戻った時のスクロール位置を復元
         setTimeout(() => { 
-          const savedScroll = AppStorage.get("sh_scroll_pos_" + prev, 0);
+          const savedScroll = TempStorage.get("sh_scroll_pos_" + prev, 0);
           window.scrollTo(0, parseInt(savedScroll, 10)); 
         }, 50);
       } else {
@@ -662,21 +666,19 @@
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(viewId).classList.add('active');
       
-      // 移動前のスクロール位置を記憶しておく
       if (!isBack && currentActiveView) {
-         AppStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
+         TempStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
       }
       
       currentActiveView = viewId;
       
-      // 履歴管理
       if (!isBack) {
         if (viewHistory[viewHistory.length - 1] !== viewId) {
           viewHistory.push(viewId);
         }
       }
       if (viewId === 'view-home') viewHistory = ['view-home'];
-      AppStorage.set("sh_view_history", JSON.stringify(viewHistory));
+      TempStorage.set("sh_view_history", JSON.stringify(viewHistory));
 
       const titleEl = document.getElementById('headerTitle');
       const backBtn = document.getElementById('backBtn');
@@ -701,7 +703,6 @@
       if (viewId === 'view-monthly') {
         if (globalMonthlyData.purchase.length === 0 && globalMonthlyData.sales.length === 0) loadMonthlyData(); else renderMonthlyData();
       }
-      // バックで戻ってきた時は検索欄をリセットしない
       if (viewId === 'view-amazon' && !isBack) {
         document.getElementById('amazonKw').value = '';
         document.getElementById('amazonResult').style.display = 'none';
@@ -709,11 +710,10 @@
         loadAmazonHistory();
       }
       
-      // バックで戻ってきた時は一番上に強制スクロールしない！
       if (!isBack) {
         window.scrollTo(0,0);
       }
-      AppStorage.set("sh_last_view", viewId);
+      TempStorage.set("sh_last_view", viewId);
     }
 
     function recalcBadges() {
@@ -779,7 +779,32 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
-      try { viewHistory = JSON.parse(AppStorage.get("sh_view_history", '["view-home"]')); } catch(e) { viewHistory = ['view-home']; } // 🌟 履歴も復元
+      try { viewHistory = JSON.parse(TempStorage.get("sh_view_history", '["view-home"]')); } catch(e) { viewHistory = ['view-home']; } // 🌟 TempStorageに変更
+      
+      updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
+      setupSwipe();
+      
+      document.getElementById('headerTitle').innerText = 'SearchHub Mobile';
+
+      const lastView = TempStorage.get("sh_last_view", "view-home");
+      openView(lastView, true);
+      
+      setTimeout(() => { 
+        const savedScroll = TempStorage.get("sh_scroll_pos_" + lastView, 0);
+        window.scrollTo(0, parseInt(savedScroll, 10)); 
+      }, 100);
+
+      const lastSniperTab = TempStorage.get("sh_last_sniper_tab", "sniper-mercari");
+      const sniperBtn = document.querySelector(`button[onclick*="'${lastSniperTab}'"]`);
+      if(sniperBtn) switchTab(lastSniperTab, sniperBtn, 'view-sniper');
+
+      const lastWatcherTab = TempStorage.get("sh_last_watcher_tab", "watcher-mercari");
+      const watcherBtn = document.querySelector(`button[onclick*="'${lastWatcherTab}'"]`);
+      if(watcherBtn) switchTab(lastWatcherTab, watcherBtn, 'view-watcher');
+
+      window.addEventListener('scroll', () => {
+        TempStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
+      }, {passive: true});
       
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
@@ -954,9 +979,9 @@
           
           if (Math.abs(diffX) > 50 && Math.abs(diffY) < 40) {
             
-            // 🚀 単一画面（Amazon, 履歴, 価格改定, Researcher）なら右スワイプで即ホームへ
+            // 🌟 修正：単一画面から右スワイプした時、「強制TOP」ではなく「1つ前に戻る(goBack)」にする！
             if (diffX > 50 && (currentActiveView === 'view-amazon' || currentActiveView === 'view-history' || currentActiveView === 'view-price' || currentActiveView === 'view-researcher')) {
-              openView('view-home'); return;
+              goBack(); return; 
             }
             
             // 🔄 タブがある画面の処理
@@ -972,10 +997,9 @@
 
             // 👉 右スワイプの処理
             if (diffX > 50) {
-              // 一番左のタブ（currentIndex === 0）の時にさらに右スワイプしたらホームに戻る！
-              // （ただし、元々ホーム画面にいる時は除く）
+              // 🌟 修正：一番左のタブの時にさらに右スワイプした時も、「1つ前に戻る(goBack)」にする！
               if (currentIndex === 0 && currentActiveView !== 'view-home') {
-                 openView('view-home'); return;
+                 goBack(); return; 
               }
               // それ以外なら、純粋に左のタブへ移動
               if (currentIndex > 0) {
@@ -1009,8 +1033,8 @@
       document.querySelectorAll(`#${viewId} .tab-content`).forEach(c => c.classList.remove('active'));
       document.querySelectorAll(`#${viewId} .tab-btn`).forEach(b => b.classList.remove('active'));
       document.getElementById(targetId).classList.add('active'); btn.classList.add('active');
-      if (viewId === 'view-sniper') AppStorage.set("sh_last_sniper_tab", targetId);
-      if (viewId === 'view-watcher') AppStorage.set("sh_last_watcher_tab", targetId);
+      if (viewId === 'view-sniper') TempStorage.set("sh_last_sniper_tab", targetId);
+      if (viewId === 'view-watcher') TempStorage.set("sh_last_watcher_tab", targetId);
     }
     function switchMonthlyTab(targetId, btn) {
       document.querySelectorAll('#view-monthly .tab-content').forEach(c => c.classList.remove('active'));
