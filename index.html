@@ -789,6 +789,67 @@
     });
 
     async function syncPatrolData() {
+      // 🌟 追加：現在のスクロール位置を確保しておく
+      const currentScrollY = window.scrollY || AppStorage.get("sh_scroll_pos", 0);
+
+      document.getElementById("lastUpdate").innerText = "データ同期中...";
+      const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
+      if(!urlSniper && !url10) return;
+      try {
+        const fetchPromises = []; const cacheBuster = "&t=" + new Date().getTime();
+        if (urlSniper) fetchPromises.push(fetch(urlSniper + "?command=mobileData" + cacheBuster).then(r => r.json()).catch(() => null)); else fetchPromises.push(Promise.resolve(null));
+        if (url10) fetchPromises.push(fetch(url10 + "?command=mobileData" + cacheBuster).then(r => r.json()).catch(() => null)); else fetchPromises.push(Promise.resolve(null));
+        const [resSniper, res10] = await Promise.all(fetchPromises);
+        hideLoader();
+
+        // 💡 追加：GASから送られてきた「みんなの共通既読リスト」を受け取って合体させる！
+        let sharedLinks = [];
+        if (resSniper && resSniper.viewedLinks) sharedLinks = sharedLinks.concat(resSniper.viewedLinks);
+        if (res10 && res10.viewedLinks) sharedLinks = sharedLinks.concat(res10.viewedLinks);
+        
+        if (sharedLinks.length > 0) {
+          globalViewedLinks = [...new Set([...globalViewedLinks, ...sharedLinks])].slice(-500);
+          AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
+        }
+
+        let mergedSites = {};
+        if (resSniper && !resSniper.error && resSniper.sites) {
+          mergedSites['Sメルカリ'] = resSniper.sites['メルカリ'] || []; mergedSites['Sヤフフリ'] = resSniper.sites['ヤフーフリマ'] || []; mergedSites['Sオフモ'] = resSniper.sites['オフモール'] || [];
+          if (resSniper.discordStatus) { AppStorage.set("sh_discord_toggle", resSniper.discordStatus); updateDiscordBtnUI(resSniper.discordStatus); }
+        }
+        if (res10 && !res10.error && res10.sites) Object.assign(mergedSites, res10.sites);
+        document.getElementById("lastUpdate").innerText = "最終更新: " + Utilities_formatDate(new Date());
+        globalHistoryData = mergedSites;
+        for (const [divId, gasSiteName] of Object.entries(siteKeyMap)) {
+          const container = document.getElementById(divId);
+          const currentItems = globalHistoryData[gasSiteName] || []; container.innerHTML = "";
+          if (currentItems.length === 0) {
+            container.innerHTML = '<div class="no-data">「' + gasSiteName.replace(/^S/, '') + '」に現在、新着・利益商品は見つかっていません。</div>';
+          } else {
+            currentItems.forEach(function(item) {
+              const uniqueKey = item.url + "_" + item.status; 
+              const isNew = item.status.includes("あり") && !item.status.includes("変化なし");
+              const isRead = globalViewedLinks.includes(uniqueKey);
+              const card = document.createElement("div");
+              card.className = "card" + (isRead ? " read-card" : "") + (isNew && !isRead ? " is-new-item" : "");
+              let htmlStr = '<div class="item-title"><a href="' + item.url + '" target="_blank" data-key="' + uniqueKey + '" onclick="markAsRead(this)">💎 ' + escapeHtml(item.title) + '</a></div>' +
+                '<div class="item-meta"><span class="status-tag">' + escapeHtml(item.status) + '</span><span class="price-tag">' + escapeHtml(item.price) + '</span></div>';
+              if (item.asin && item.asin !== "undefined") {
+                htmlStr += '<div style="margin-top:10px; border-top:1px dashed #e2e8f0; padding-top:10px;">' +
+                  '<button class="auto-asin-btn" data-key="' + uniqueKey + '" onclick="markAsRead(this); openView(\'view-amazon\'); jumpToAmazonResearch(\'' + escapeHtml(item.asin) + '\', \'' + escapeHtml(item.title) + '\')">' +
+                  '<span style="font-size:14px;">📦</span> ASIN: ' + escapeHtml(item.asin) + ' で一発解析</button></div>';
+              }
+              card.innerHTML = htmlStr; container.appendChild(card);
+            });
+          }
+        }
+        AppStorage.set("sh_history_data", JSON.stringify(globalHistoryData)); recalcBadges(); 
+        
+        // 🌟 追加：更新が終わったら、元のスクロール位置にピタッと戻す
+        setTimeout(() => { window.scrollTo(0, parseInt(currentScrollY, 10)); }, 50);
+
+      } catch(err) { document.getElementById("lastUpdate").innerText = "通信失敗"; hideLoader(); }
+    }
 
     function forceReload(btn) { btn.style.transform = "rotate(360deg)"; setTimeout(() => btn.style.transform = "rotate(0deg)", 500); syncPatrolData(); fetchDashboardData(); }
     
