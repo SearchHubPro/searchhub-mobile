@@ -779,7 +779,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       try { globalViewedLinks = JSON.parse(AppStorage.get("sh_viewed_links", "[]")); } catch(e) { globalViewedLinks = []; }
-      try { viewHistory = JSON.parse(TempStorage.get("sh_view_history", '["view-home"]')); } catch(e) { viewHistory = ['view-home']; } // 🌟 TempStorageに変更
+      try { viewHistory = JSON.parse(TempStorage.get("sh_view_history", '["view-home"]')); } catch(e) { viewHistory = ['view-home']; }
       
       updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
       setupSwipe();
@@ -805,37 +805,8 @@
       window.addEventListener('scroll', () => {
         TempStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
       }, {passive: true});
-      
-      updateDiscordBtnUI(AppStorage.get("sh_discord_toggle", "off"));
-      setupSwipe();
-      
-      document.getElementById('headerTitle').innerText = 'SearchHub Mobile';
-
-      // 🌟 修正：起動時は isBack = true 扱いにして画面の一番上に吹っ飛ぶのを防ぐ！
-      const lastView = AppStorage.get("sh_last_view", "view-home");
-      openView(lastView, true);
-      
-      // スクロール位置も復元
-      setTimeout(() => { 
-        const savedScroll = AppStorage.get("sh_scroll_pos_" + lastView, 0);
-        window.scrollTo(0, parseInt(savedScroll, 10)); 
-      }, 100);
-
-      const lastSniperTab = AppStorage.get("sh_last_sniper_tab", "sniper-mercari");
-      const sniperBtn = document.querySelector(`button[onclick*="'${lastSniperTab}'"]`);
-      if(sniperBtn) switchTab(lastSniperTab, sniperBtn, 'view-sniper');
-
-      const lastWatcherTab = AppStorage.get("sh_last_watcher_tab", "watcher-mercari");
-      const watcherBtn = document.querySelector(`button[onclick*="'${lastWatcherTab}'"]`);
-      if(watcherBtn) switchTab(lastWatcherTab, watcherBtn, 'view-watcher');
-
-      // 🌟 修正：画面ごとにスクロール位置を分けて記録する！
-      window.addEventListener('scroll', () => {
-        AppStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
-      }, {passive: true});
 
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
-      // ...(これ以下は既存のコードへ続く)...
       
       if(urlSniper || url10) { fetchDashboardData(); }
 
