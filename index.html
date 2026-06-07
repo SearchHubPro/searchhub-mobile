@@ -1299,14 +1299,23 @@ document.getElementById("regPurchaseUrl").value = "";
       pendingRegData.purchaseId = document.getElementById("regPurchaseId").value.trim();
 
       const btn = document.getElementById("executeRegBtn");
+      
+      // 👇 ここから修正：ResearcherのURLを取得
       const ssUrl = AppStorage.get("sh_ssurl", "");
+      const researcherUrl = AppStorage.get("sh_researcher_url", ""); // 🌟 追加
       let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
 
       btn.disabled = true; btn.innerHTML = "⌛ 登録中...";
       try {
         const res = await fetch(targetGasUrl, { 
           method: 'POST', 
-          body: JSON.stringify({ command: 'register', ssUrl: ssUrl, data: pendingRegData }) 
+          // 👇 GASに送るボディ部分に researcherUrl を追加
+          body: JSON.stringify({ 
+            command: 'register', 
+            ssUrl: ssUrl, 
+            researcherUrl: researcherUrl, // 🌟 追加
+            data: pendingRegData 
+          }) 
         });
         const resJson = await res.json();
         
