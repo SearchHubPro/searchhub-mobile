@@ -1140,6 +1140,8 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
 
         const fbaFee = p.fbaFees ? (p.fbaFees.totalFee || p.fbaFees.pickAndPackFee || 430) : 430;
         const drops = p.stats.salesRankDrops90 || 0; 
+        window.tmpFbaFee = fbaFee;
+        window.tmpFeePercent = referralFeePercent;
         const mSales = Math.floor(drops / 3);
 
         // 🚀 シートの「自分流ロジック（7点満点）」を計算
@@ -1280,7 +1282,10 @@ saveAmazonHistory({ kw: asin, title: productTitle, img: imageUrl, rank: rank, rC
         shipping: ePrice, 
         sellPrice: sPrice,
         title: window.tmpTitle || "",
-        model: window.tmpModel || ""
+        model: window.tmpModel || "",
+        // 👇 この2行を追加！（GASにFBA料と手数料の数字を送る）
+        fbaFee: window.tmpFbaFee || 0,
+        fee: Math.floor(sPrice * ((window.tmpFeePercent || 10) / 100))
       };
 
       document.getElementById("confirmDetails").innerHTML = 
