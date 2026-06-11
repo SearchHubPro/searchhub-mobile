@@ -1410,7 +1410,6 @@ document.getElementById("regPurchaseUrl").value = "";
       const actualFeePercent = feePercent || 10; 
       const priceInput = document.getElementById('sim_price_' + id); 
       const profitSpan = document.getElementById('sim_profit_' + id);
-      const commSpan = document.getElementById('sim_comm_' + id);
       if(!priceInput || !profitSpan) return;
       
       const price = Number(priceInput.value) || 0; 
@@ -1419,9 +1418,6 @@ document.getElementById("regPurchaseUrl").value = "";
       const margin = price > 0 ? Math.floor((profit / price) * 100) : 0;
       profitSpan.style.color = profit >= 0 ? '#07A27B' : '#e53e3e'; 
       profitSpan.innerText = '¥' + profit.toLocaleString() + ' (' + margin + '%)';
-      if (commSpan) {
-        commSpan.innerText = '手数料: ¥' + comm.toLocaleString() + ' / FBA: ¥' + fbaFee.toLocaleString();
-      }
     };
 
     async function loadInventoryPrice() {
@@ -1496,7 +1492,7 @@ document.getElementById("regPurchaseUrl").value = "";
             </div>
             <div style="display:flex; justify-content:space-between; font-size:10px; color:#718096; margin-bottom:8px;">
   <span>仕入: ¥${Number(item.cost).toLocaleString()}</span>
-  <span id="sim_comm_${uniqueId}">手数料: ¥${Math.floor(Number(String(item.price || 0).replace(/,/g, '')) * (Number(item.feePercent) / 100)).toLocaleString()} / FBA: ¥${Number(item.fbaFee).toLocaleString()}</span>
+  <span>手数料: ¥${Math.floor(Number(String(item.price || 0).replace(/,/g, '')) * (Number(item.feePercent) / 100)).toLocaleString()} / FBA: ¥${Number(item.fbaFee).toLocaleString()}</span>
 </div>
             <div style="display:flex; justify-content:space-between; align-items:flex-end; border-top:1px dashed #cbd5e0; padding-top:8px;">
               <span style="font-size:11px; font-weight:bold; color:#4a5568;">手残り利益:</span>
