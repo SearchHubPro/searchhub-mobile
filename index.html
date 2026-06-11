@@ -1410,6 +1410,7 @@ document.getElementById("regPurchaseUrl").value = "";
       const actualFeePercent = feePercent || 10; 
       const priceInput = document.getElementById('sim_price_' + id); 
       const profitSpan = document.getElementById('sim_profit_' + id);
+      const commSpan = document.getElementById('sim_comm_' + id);
       if(!priceInput || !profitSpan) return;
       
       const price = Number(priceInput.value) || 0; 
