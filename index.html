@@ -168,7 +168,7 @@
       <div class="header-left">
         <button class="header-btn" id="backBtn" style="display:none;" onclick="goBack()"><i class="fas fa-chevron-left"></i></button>
         <button class="header-btn" onclick="openConfig()"><i class="fas fa-cog"></i></button>
-        <button class="header-btn" onclick="openManager()"><i class="fas fa-folder-open"></i></button>
+        <button class="header-btn" onclick="openExpenseModal()"><i class="fas fa-file-invoice-dollar"></i></button>
       </div>
       <div class="header-center">
         <h1 id="headerTitle">SearchHub Mobile</h1>
@@ -354,7 +354,42 @@
       </div>
     </div>
   </div>
+  <div id="expenseModal" class="modal">
+    <div class="modal-content">
+      <h3 style="color:#e53e3e;">💸 経費サクッと入力</h3>
+      
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;">
+          <label>発生月 (必須)</label>
+          <input type="text" id="expMonth" placeholder="2026/06">
+        </div>
+        <div style="flex:1;">
+          <label>日付</label>
+          <input type="text" id="expDate" placeholder="2026/06/12">
+        </div>
+      </div>
 
+      <label>経費の種類</label>
+      <select id="expTypeSelect" onchange="toggleExpTypeInput()" style="width:100%; padding:10px; margin-top:4px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:#fff; outline:none;">
+        <option value="梱包資材">📦 梱包資材</option>
+        <option value="ツール代">💻 ツール代</option>
+        <option value="その他">✍️ その他 (手入力)</option>
+      </select>
+      
+      <input type="text" id="expTypeCustom" placeholder="経費の種類を入力してな" style="display:none; width:100%; padding:10px; margin-top:8px; border:1px solid #e53e3e; border-radius:6px; font-size:14px; box-sizing:border-box; outline:none;">
+
+      <label>金額 (必須)</label>
+      <input type="number" id="expAmount" placeholder="例: 1500" style="font-size:18px; font-weight:bold; color:#e53e3e;">
+
+      <label>メモ (任意)</label>
+      <input type="text" id="expMemo" placeholder="段ボール50枚 など">
+
+      <div class="modal-actions" style="margin-top:24px;">
+        <button style="background:#e2e8f0; color:#4a5568;" onclick="closeExpenseModal()">キャンセル</button>
+        <button id="expSubmitBtn" style="background:#e53e3e; color:white; font-size:14px;" onclick="submitExpense()">🚀 経費を登録</button>
+      </div>
+    </div>
+  </div>
   <div id="configModal" class="modal">
     <div class="modal-content">
       <h3>⚙️ アプリ基本設定</h3>
@@ -1985,7 +2020,100 @@ document.getElementById("regPurchaseUrl").value = "";
         if(btn) { btn.disabled = false; btn.innerText = "在庫更新 (Keepa)"; }
       }
     }
+   
+   // 💸 経費入力窓を開く
+    function openExpenseModal() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = ("0" + (today.getMonth() + 1)).slice(-2);
+      const dd = ("0" + today.getDate()).slice(-2);
+      
+      // 開いた瞬間に、今の月と日を自動で入れてあげる
+      document.getElementById('expMonth').value = `${yyyy}/${mm}`;
+      document.getElementById('expDate').value = `${yyyy}/${mm}/${dd}`;
+      document.getElementById('expAmount').value = "";
+      document.getElementById('expMemo').value = "";
+      
+      document.getElementById('expTypeSelect').value = "梱包資材";
+      toggleExpTypeInput(); // 表示リセット
+      
+      document.getElementById('expenseModal').style.display = "flex";
+    }
 
+    // 💸 窓を閉じる
+    function closeExpenseModal() {
+      document.getElementById('expenseModal').style.display = "none";
+    }
+
+    // 💸 「その他」を選んだら入力枠をスッと出すギミック
+    function toggleExpTypeInput() {
+      const select = document.getElementById('expTypeSelect');
+      const customInput = document.getElementById('expTypeCustom');
+      if (select.value === "その他") {
+        customInput.style.display = "block";
+        customInput.focus();
+      } else {
+        customInput.style.display = "none";
+        customInput.value = "";
+      }
+    }
+
+    // 💸 登録ボタンを押した時の送信処理
+    async function submitExpense() {
+      const month = document.getElementById('expMonth').value.trim();
+      const amount = document.getElementById('expAmount').value.trim();
+      if (!month || !amount) return alert("発生月と金額は絶対入れてな！");
+
+      const selectVal = document.getElementById('expTypeSelect').value;
+      let type = selectVal;
+      if (selectVal === "その他") {
+        type = document.getElementById('expTypeCustom').value.trim();
+        if (!type) return alert("経費の種類を入力してな！");
+      }
+
+      const date = document.getElementById('expDate').value.trim();
+      const memo = document.getElementById('expMemo').value.trim();
+
+      const btn = document.getElementById('expSubmitBtn');
+      btn.innerText = "⌛ 登録中...";
+      btn.disabled = true;
+
+      const ssUrl = AppStorage.get("sh_ssurl", "");
+      let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+
+      try {
+        const res = await fetch(targetGasUrl, {
+          method: 'POST',
+          body: JSON.stringify({
+            command: 'registerExpense',
+            ssUrl: ssUrl,
+            data: { month: month, date: date, type: type, amount: amount, memo: memo }
+          })
+        });
+        const json = await res.json();
+        
+        if (json.success) {
+          btn.style.background = "#38a169";
+          btn.innerText = "✅ 登録完了！";
+          setTimeout(() => {
+            closeExpenseModal();
+            btn.style.background = "#e53e3e";
+            btn.innerText = "🚀 経費を登録";
+            btn.disabled = false;
+            // もし月別データ画面を開いてたら自動で再読込する
+            if (currentActiveView === 'view-monthly') loadMonthlyData();
+          }, 1500);
+        } else {
+          alert("エラー: " + json.message);
+          btn.innerText = "🚀 経費を登録";
+          btn.disabled = false;
+        }
+      } catch(e) {
+        alert("通信エラーが発生しました");
+        btn.innerText = "🚀 経費を登録";
+        btn.disabled = false;
+      }
+    }
   </script>
 
   <script type="module">
