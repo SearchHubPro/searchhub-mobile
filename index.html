@@ -1594,6 +1594,11 @@ document.getElementById("regPurchaseUrl").value = "";
            </div>
         </div>`;
       } else {
+        // 🎯 諸経費と純利益の計算を追加
+        const expense = monthData.expense || 0; // GASから経費を受け取る（データが無い時は0）
+        const netProfit = monthData.profit - expense; // 粗利益から経費を引く
+        const netMargin = monthData.sales > 0 ? Math.round((netProfit / monthData.sales) * 100) : 0;
+
         sumDiv.innerHTML = `
         <div class="card" style="border-top:4px solid #e53e3e;">
            <div style="font-size:13px; font-weight:bold; color:#4a5568; margin-bottom:12px; display:flex; justify-content:space-between;">
@@ -1616,13 +1621,18 @@ document.getElementById("regPurchaseUrl").value = "";
              <span style="font-size:11px; color:#4a5568;">FBA手数料合計</span>
              <span style="font-size:14px; font-weight:bold; color:#2d3748;">¥${Number(monthData.fba).toLocaleString()}</span>
            </div>
-           <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:4px;">
+           <div style="display:flex; justify-content:space-between; margin-bottom:6px; border-bottom:1px dashed #e2e8f0; padding-bottom:4px;">
              <span style="font-size:11px; color:#4a5568;">仕入原価合計</span>
              <span style="font-size:14px; font-weight:bold; color:#2d3748;">¥${Number(monthData.cost).toLocaleString()}</span>
            </div>
-           <div style="background:${monthData.profit >= 0 ? '#f0fff4' : '#fff5f5'}; border:1px solid ${monthData.profit >= 0 ? '#c6f6d5' : '#fed7d7'}; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-             <span style="font-size:12px; font-weight:bold; color:#4a5568;">総利益 (利益率)</span>
-             <span style="font-size:20px; font-weight:900; color:${monthData.profit >= 0 ? '#38a169' : '#e53e3e'};">¥${Number(monthData.profit).toLocaleString()} <span style="font-size:14px;">(${margin}%)</span></span>
+           <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:4px;">
+             <span style="font-size:11px; color:#4a5568;">諸経費合計</span>
+             <span style="font-size:14px; font-weight:bold; color:#e53e3e;">-¥${Number(expense).toLocaleString()}</span>
+           </div>
+           
+           <div style="background:${netProfit >= 0 ? '#f0fff4' : '#fff5f5'}; border:1px solid ${netProfit >= 0 ? '#c6f6d5' : '#fed7d7'}; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+             <span style="font-size:12px; font-weight:bold; color:#4a5568;">純利益 (利益率)</span>
+             <span style="font-size:20px; font-weight:900; color:${netProfit >= 0 ? '#38a169' : '#e53e3e'};">¥${Number(netProfit).toLocaleString()} <span style="font-size:14px;">(${netMargin}%)</span></span>
            </div>
         </div>`;
       }
