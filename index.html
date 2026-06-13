@@ -1579,7 +1579,7 @@ document.getElementById("regPurchaseUrl").value = "";
       } catch (err) { document.getElementById('monthly-summary').innerHTML = '<div class="card" style="color:red; text-align:center;">通信エラーが発生しました。</div>'; }
     }
 
-    function renderMonthlyData() {
+   function renderMonthlyData() {
       const selMonth = document.getElementById('monthly-selector').value;
       if(!selMonth || selMonth === "データなし") return;
       
@@ -1629,10 +1629,14 @@ document.getElementById("regPurchaseUrl").value = "";
            </div>
         </div>`;
       } else {
-        // 🎯 諸経費と純利益の計算を追加
-        const expense = monthData.expense || 0; // GASから経費を受け取る（データが無い時は0）
-        const netProfit = monthData.profit - expense; // 粗利益から経費を引く
+        const expense = monthData.expense || 0; 
+        const netProfit = monthData.profit - expense; 
         const netMargin = monthData.sales > 0 ? Math.round((netProfit / monthData.sales) * 100) : 0;
+
+        // 💡 【ここを追加！】補填で黒字（マイナス経費）の時は緑色でプラス表示にする！
+        const expDisplay = expense < 0 
+          ? `<span style="font-size:14px; font-weight:bold; color:#07A27B;">+¥${Math.abs(expense).toLocaleString()} (補填等プラス)</span>`
+          : `<span style="font-size:14px; font-weight:bold; color:#e53e3e;">-¥${Number(expense).toLocaleString()}</span>`;
 
         sumDiv.innerHTML = `
         <div class="card" style="border-top:4px solid #e53e3e;">
@@ -1658,8 +1662,7 @@ document.getElementById("regPurchaseUrl").value = "";
            </div>
            <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:4px;">
              <span style="font-size:11px; color:#4a5568;">諸経費合計</span>
-             <span style="font-size:14px; font-weight:bold; color:#e53e3e;">-¥${Number(expense).toLocaleString()}</span>
-           </div>
+             ${expDisplay}  </div>
            
            <div style="background:${netProfit >= 0 ? '#f0fff4' : '#fff5f5'}; border:1px solid ${netProfit >= 0 ? '#c6f6d5' : '#fed7d7'}; padding:12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
              <span style="font-size:12px; font-weight:bold; color:#4a5568;">純利益 (利益率)</span>
