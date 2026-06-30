@@ -494,14 +494,12 @@
 
     async function fetchDashboardData() {
   const ssUrl = AppStorage.get("sh_ssurl", "");
-  // 💡 修正：スマホに保存されているResearcherのURLも引っ張り出す
   const resUrl = AppStorage.get("sh_researcher_url", ""); 
   
   let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
   if (!ssUrl || !targetGasUrl) return;
 
   try {
-    // 💡 修正：GASに送るデータの中に `researcherUrl: resUrl` をしっかり混ぜてあげる！
     const res = await fetch(targetGasUrl, { 
       method: 'POST', 
       body: JSON.stringify({ command: 'getDashboardData', ssUrl: ssUrl, researcherUrl: resUrl }) 
@@ -523,7 +521,6 @@
         });
       }
 
-      // 💡 Researcherの赤丸連動（ここは今のままでOK）
       const dashDotRes = document.getElementById('dash-dot-researcher');
       if (dashDotRes) {
         if (homeData.researcherActive === true) {
@@ -581,7 +578,6 @@
            return;
         }
 
-        // 💡 利益率の計算を追加！
         const marginStr = currentHomeMode === 'purchase' 
   ? (monthDataObj.totalEstSales > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalEstSales) * 100) : 0)
   : (monthDataObj.totalBar > 0 ? Math.round((monthDataObj.totalLine / monthDataObj.totalBar) * 100) : 0);
@@ -671,8 +667,8 @@
       const loader = document.getElementById("loader");
       if (loader && loader.style.display !== "none") {
         
-        document.body.style.backgroundColor = "#f0f2f5"; // 👈 消え始める瞬間に裏地をグレーにする！
-        loader.style.opacity = "0"; // 👈 ここから0.5秒かけてローディングが透けていく
+        document.body.style.backgroundColor = "#f0f2f5"; 
+        loader.style.opacity = "0"; 
         
         setTimeout(() => { 
           loader.style.display = "none"; 
@@ -780,6 +776,9 @@
     }
 
     function markAsRead(element) {
+      // 🌟 リンクをクリックした瞬間にスクロール位置を確実に記録！
+      TempStorage.set("sh_scroll_pos_" + currentActiveView, window.scrollY);
+      
       const card = element.closest('.card');
       if (card) { card.classList.add('read-card'); card.classList.remove('is-new-item'); }
       const key = element.getAttribute('data-key');
@@ -788,13 +787,11 @@
         if (globalViewedLinks.length > 500) globalViewedLinks.shift();
         AppStorage.set("sh_viewed_links", JSON.stringify(globalViewedLinks));
         
-        // 💡 追加：クリックした瞬間、裏側でこっそりGASの共通メモ帳にも送る！
         syncMarkAsReadToGAS([key]);
       }
       recalcBadges(); 
     }
 
-    // 💡 新規追加：GASに既読データを送る通信専用関数
     function syncMarkAsReadToGAS(newLinks) {
       const urlSniper = AppStorage.get("sh_sniper_url", ""); 
       const url10 = AppStorage.get("sh_tensite_url", "");
@@ -802,12 +799,11 @@
 
       const options = { 
         method: 'POST', 
-        mode: 'no-cors', // 🚨 【超重要】これがないとブラウザが絶対に通信を弾く！！
+        mode: 'no-cors', 
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: payload 
       };
 
-      // SniperとWatcherの両方に送信
       if (urlSniper) fetch(urlSniper, options).catch(e => {});
       if (url10) fetch(url10, options).catch(e => {});
     }
@@ -853,20 +849,25 @@
       }
     });
 
+    // 🚨 修正ポイント：戻ってきた時の「リスト自動再構築」をストップ！
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
+        // 🌟 戻ってきた瞬間に、保存しておいたスクロール位置へ「即座に」ピタッと戻す！
+        const savedScroll = TempStorage.get("sh_scroll_pos_" + currentActiveView, 0);
+        window.scrollTo(0, parseInt(savedScroll, 10));
+        
+        // 🚨 リストが再構築されてガタつく原因の自動同期（syncPatrolData）を停止！
+        // （更新したい時は「引っ張って更新」ボタンを使ってもらうようにする）
         const urlSniper = AppStorage.get("sh_sniper_url", ""); 
         const url10 = AppStorage.get("sh_tensite_url", "");
         if (urlSniper || url10) {
-          syncPatrolData();
-          fetchDashboardData(); 
+          fetchDashboardData(); // グラフや数字だけは裏でこっそり最新にしておく
         }
       }
     });
 
     async function syncPatrolData() {
-      // 🌟 追加：現在のスクロール位置を確保しておく
-      const currentScrollY = window.scrollY || AppStorage.get("sh_scroll_pos_" + currentActiveView, 0);
+      // 🚨 ここにあった currentScrollY の取得処理を削除しました
       document.getElementById("lastUpdate").innerText = "データ同期中...";
       const urlSniper = AppStorage.get("sh_sniper_url", ""); const url10 = AppStorage.get("sh_tensite_url", "");
       if(!urlSniper && !url10) return;
@@ -877,7 +878,6 @@
         const [resSniper, res10] = await Promise.all(fetchPromises);
         hideLoader();
 
-        // 💡 追加：GASから送られてきた「みんなの共通既読リスト」を受け取って合体させる！
         let sharedLinks = [];
         if (resSniper && resSniper.viewedLinks) sharedLinks = sharedLinks.concat(resSniper.viewedLinks);
         if (res10 && res10.viewedLinks) sharedLinks = sharedLinks.concat(res10.viewedLinks);
@@ -920,8 +920,7 @@
         }
         AppStorage.set("sh_history_data", JSON.stringify(globalHistoryData)); recalcBadges(); 
         
-        // 🌟 追加：更新が終わったら、元のスクロール位置にピタッと戻す
-        setTimeout(() => { window.scrollTo(0, parseInt(currentScrollY, 10)); }, 50);
+        // 🚨 ここにあった setTimeout による強制スクロール処理を削除しました
 
       } catch(err) { document.getElementById("lastUpdate").innerText = "通信失敗"; hideLoader(); }
     }
@@ -931,11 +930,10 @@
     function openConfig() {
       document.getElementById("cfgKeepa").value = AppStorage.get("sh_keepa", ""); 
       document.getElementById("cfgSsUrl").value = AppStorage.get("sh_ssurl", "");
-      // 🌟 追加：保存されているResearcherURLを枠に入れる
       document.getElementById("cfgResearcherUrl").value = AppStorage.get("sh_researcher_url", ""); 
       document.getElementById("cfgSniperUrl").value = AppStorage.get("sh_sniper_url", ""); 
       document.getElementById("cfg10SiteUrl").value = AppStorage.get("sh_tensite_url", "");
-　　　document.getElementById("cfgSellerId").value = AppStorage.get("sh_seller_id", "");
+   document.getElementById("cfgSellerId").value = AppStorage.get("sh_seller_id", "");
       document.getElementById("configModal").style.display = "flex";
     }
 
@@ -944,11 +942,10 @@
     function saveConfig() {
       AppStorage.set("sh_keepa", document.getElementById("cfgKeepa").value.trim()); 
       AppStorage.set("sh_ssurl", document.getElementById("cfgSsUrl").value.trim());
-      // 🌟 追加：枠に入力されたResearcherURLを保存する
       AppStorage.set("sh_researcher_url", document.getElementById("cfgResearcherUrl").value.trim()); 
       AppStorage.set("sh_sniper_url", document.getElementById("cfgSniperUrl").value.trim()); 
       AppStorage.set("sh_tensite_url", document.getElementById("cfg10SiteUrl").value.trim());
-　　　AppStorage.set("sh_seller_id", document.getElementById("cfgSellerId").value.trim());
+   AppStorage.set("sh_seller_id", document.getElementById("cfgSellerId").value.trim());
       closeConfig(); syncPatrolData(); fetchDashboardData();
     }
     
@@ -1983,8 +1980,8 @@ document.getElementById("regPurchaseUrl").value = "";
         ptrEl.style.top = '-50px'; 
       }
     }, {passive: true});
-　　
-　　async function updateKeepaInventory() {
+  
+  async function updateKeepaInventory() {
       const btn = document.getElementById('keepaBtn');
       if(btn) { btn.disabled = true; btn.innerText = "更新中..."; }
 
