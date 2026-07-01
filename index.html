@@ -1213,6 +1213,13 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
 
+        // 🚀 【新規追加】自在庫（現在庫）の個数を計算するロジック
+        let ownInventoryCount = 0;
+        if (typeof globalInventoryData !== 'undefined' && globalInventoryData.length > 0) {
+          // 価格改定用の在庫データから、ASINが一致するものを探してカウント！
+          ownInventoryCount = globalInventoryData.filter(item => item.asin === asin).length;
+        }
+
         // ★ 規制確認ボタンを移動し、左側の隙間を調整
         resView.innerHTML = `
           <div class="card" style="display:flex; gap:12px; align-items:flex-start; margin-bottom:4px; padding-bottom:8px;">
@@ -1227,15 +1234,23 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
               <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                 <span class="badge" style="border:1px solid ${rColor}; color:${rColor}; padding:3px 8px;">${rank}ランク</span>
                 <span class="badge" style="background:${sizeTier==='大型'?'#e53e3e':'#07A27B'}; color:white; padding:3px 8px;">${sizeTier}</span>
-<button onclick="openView('view-history'); document.getElementById('historyAsin').value='${asin}'; searchHistory();" style="background:#4285f4; color:white; border:none; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:10px; margin-left:4px; cursor:pointer;"><i class="fas fa-history"></i> 販売履歴リサーチ</button>
+                
+                <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="background:#e53e3e; color:#fff; text-decoration:none; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15);">規制確認</a>
+                
+                <button onclick="openView('view-history'); document.getElementById('historyAsin').value='${asin}'; searchHistory();" style="background:#4285f4; color:white; border:none; padding:3px 8px; border-radius:4px; font-weight:bold; font-size:10px; margin-left:4px; cursor:pointer;"><i class="fas fa-history"></i> 販売履歴リサーチ</button>
               </div>
             </div>
+            
             <div style="display:flex; flex-direction:column; align-items:stretch; gap:6px; flex-shrink:0; width:55px;">
               <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f0f4ff; border:1px solid #dbeafe; padding:6px 4px; border-radius:8px;">
                 <span style="font-size:10px; color:#4a72b2; font-weight:bold; margin-bottom:2px;">中古出品</span>
                 <span style="font-size:18px; font-weight:900; color:#2c4c8f; line-height:1;">${usedOffers}</span>
               </div>
-              <a href="https://sellercentral.amazon.co.jp/product-search/search?q=${asin}" target="_blank" style="background:#e53e3e; color:#fff; text-decoration:none; padding:4px 0; border-radius:6px; font-size:10px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.15); text-align:center; display:block; line-height:1.2;">規制確認</a>
+              
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:${ownInventoryCount > 0 ? '#fff5f5' : '#f0fff4'}; border:1px solid ${ownInventoryCount > 0 ? '#fed7d7' : '#c6f6d5'}; padding:6px 4px; border-radius:8px; box-shadow: ${ownInventoryCount > 0 ? '0 2px 4px rgba(229,62,62,0.2)' : 'none'};">
+                <span style="font-size:10px; color:${ownInventoryCount > 0 ? '#c53030' : '#2f855a'}; font-weight:bold; margin-bottom:2px;">自在庫</span>
+                <span style="font-size:18px; font-weight:900; color:${ownInventoryCount > 0 ? '#e53e3e' : '#22543d'}; line-height:1;">${ownInventoryCount}</span>
+              </div>
             </div>
           </div>
 
