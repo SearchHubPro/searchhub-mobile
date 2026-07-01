@@ -1213,11 +1213,29 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
 
-        // 🚀 【新規追加】自在庫（現在庫）の個数を計算するロジック
+        // 🚀 【A案＋B案 最強ハイブリッド】自在庫（現在庫）の個数を計算するロジック
         let ownInventoryCount = 0;
         if (typeof globalInventoryData !== 'undefined' && globalInventoryData.length > 0) {
-          // 価格改定用の在庫データから、ASINが一致するものを探してカウント！
+          // A案：すでに価格改定データを持っていれば、そこから爆速カウント！
           ownInventoryCount = globalInventoryData.filter(item => item.asin === asin).length;
+        } else {
+          // B案：データが空っぽなら、裏側（GAS）に一瞬で聞きに行く！
+          const ssUrl = AppStorage.get("sh_ssurl", "");
+          let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
+          if (ssUrl && targetGasUrl) {
+            try {
+              const countRes = await fetch(targetGasUrl, {
+                method: 'POST',
+                body: JSON.stringify({ command: 'checkOwnInventoryCount', ssUrl: ssUrl, asin: asin })
+              });
+              const countJson = await countRes.json();
+              if (countJson.success) {
+                ownInventoryCount = countJson.count;
+              }
+            } catch(e) {
+              console.log("在庫カウントの取得に失敗しました", e);
+            }
+          }
         }
 
         // ★ 規制確認ボタンを移動し、左側の隙間を調整
