@@ -927,7 +927,7 @@
             container.innerHTML = '<div class="no-data">「' + gasSiteName.replace(/^S/, '') + '」に現在、新着・利益商品は見つかっていません。</div>';
           } else {
             currentItems.forEach(function(item) {
-              const uniqueKey = item.url;
+              const uniqueKey = item.url + "_" + item.dateStr;
               const isNew = item.status.includes("あり") && !item.status.includes("変化なし");
               const isRead = globalViewedLinks.includes(uniqueKey);
               const card = document.createElement("div");
