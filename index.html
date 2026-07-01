@@ -815,33 +815,24 @@
       recalcBadges(); 
     }
 
-    // 📦 まとめ送り用のダンボールと、出発タイマーを準備
-    let pendingReadKeys = [];
+    // 📦 出発タイマーだけ準備（ダンボールの変数はもう不要！）
     let syncTimer = null;
 
-    function syncMarkAsReadToGAS(newLinks) {
-      // 1. 送られてきたキー（合言葉）をダンボールに追加
-      newLinks.forEach(key => {
-        if (!pendingReadKeys.includes(key)) {
-          pendingReadKeys.push(key);
-        }
-      });
-
-      // 2. もし出発待ちのトラック（タイマー）がいたら一旦ストップ！
+    // 💡 新規追加：GASに既読データを送る通信専用関数（絶対に取りこぼさない最強版！）
+    function syncMarkAsReadToGAS(ignoreArgs) {
+      // 1. もし出発待ちのトラック（タイマー）がいたら一旦ストップ！
       if (syncTimer) {
         clearTimeout(syncTimer);
       }
 
-      // 3. 最後にクリックしてから2秒（2000ミリ秒）待って、一気にGASへ送信！
+      // 2. 最後にクリックしてから2秒（2000ミリ秒）待って送信！
       syncTimer = setTimeout(() => {
-        const linksToSend = [...pendingReadKeys];
-        pendingReadKeys = []; // ダンボールを空にする
-
         const urlSniper = AppStorage.get("sh_sniper_url", ""); 
         const url10 = AppStorage.get("sh_tensite_url", "");
         
-        // 💡 ここでダンボールの中身（複数個）を一気にまとめて送る！
-        const payload = JSON.stringify({ command: 'saveViewedLinks', links: linksToSend });
+        // 🎯 【最強の解決策】ちまちま送るのをやめて、アプリが記憶してる「全履歴（最大500件）」を毎回フルで送る！
+        // これなら途中の通信がGoogleに弾かれても、次のクリックで全部まとめて再送されるから絶対にバグらない！
+        const payload = JSON.stringify({ command: 'saveViewedLinks', links: globalViewedLinks });
 
         const options = { 
           method: 'POST', 
@@ -850,9 +841,10 @@
           body: payload 
         };
 
+        // SniperとWatcherの両方に送信
         if (urlSniper) fetch(urlSniper, options).catch(e => {});
         if (url10) fetch(url10, options).catch(e => {});
-      }, 2000); // 👈 ここが待機時間（2秒）。もっと早くしたければ1000でもOKやで！
+      }, 2000); 
     }
 
     document.addEventListener("DOMContentLoaded", function() {
