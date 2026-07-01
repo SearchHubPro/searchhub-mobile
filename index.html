@@ -1213,24 +1213,34 @@ document.getElementById('amazonHistoryArea').style.display = 'none';
         let imgHtml = '<div style="width:70px; height:70px; background:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#999; border:1px solid #eee;">No Img</div>';
         if (imageUrl) imgHtml = `<div style="width:70px; height:70px; background:#fff; border:1px solid #eee; border-radius:8px; padding:4px; flex-shrink:0;"><img src="${imageUrl}" style="width:100%; height:100%; object-fit:contain;"></div>`;
 
-        // 🚀 【完全リアルタイム版】自在庫（現在庫）の個数を計算するロジック
+        // 🚀 【完全謝罪＆最強ハイブリッド版】自在庫（現在庫）の個数を計算するロジック
         let ownInventoryCount = 0;
+
+        // ① まず、あんたの言う通り「出品中」がちゃんと取れてた元の仕組み（A案）を復活！
+        if (typeof globalInventoryData !== 'undefined' && globalInventoryData.length > 0) {
+          ownInventoryCount = globalInventoryData.filter(item => item.asin === asin).length;
+        }
+
+        // ② その上で、納品待ちも含めた「完全な数」を裏側から確実に取りに行く（B案）
         const ssUrl = AppStorage.get("sh_ssurl", "");
         let targetGasUrl = AppStorage.get("sh_tensite_url", "") || AppStorage.get("sh_sniper_url", "");
         
         if (ssUrl && targetGasUrl) {
           try {
-            // 💡 余計なキャッシュは使わず、常にGAS（帳簿）へ直接「今何個ある？」って聞きに行く！
             const countRes = await fetch(targetGasUrl, {
               method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // 🛡️ 通信エラーを絶対防ぐ呪文
               body: JSON.stringify({ command: 'checkOwnInventoryCount', ssUrl: ssUrl, asin: asin })
             });
             const countJson = await countRes.json();
+            
+            // 💡 GASからの取得に成功した場合のみ、納品待ちも含めた「正確な数」で上書きする！
             if (countJson.success) {
               ownInventoryCount = countJson.count;
             }
           } catch(e) {
-            console.log("在庫カウントの取得に失敗しました", e);
+            console.log("GAS通信エラー: ", e);
+            // エラーになっても、①で取得した「出品中の数」は最低限表示される！
           }
         }
 
