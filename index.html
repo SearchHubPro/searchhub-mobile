@@ -815,20 +815,44 @@
       recalcBadges(); 
     }
 
+    // 📦 まとめ送り用のダンボールと、出発タイマーを準備
+    let pendingReadKeys = [];
+    let syncTimer = null;
+
     function syncMarkAsReadToGAS(newLinks) {
-      const urlSniper = AppStorage.get("sh_sniper_url", ""); 
-      const url10 = AppStorage.get("sh_tensite_url", "");
-      const payload = JSON.stringify({ command: 'saveViewedLinks', links: newLinks });
+      // 1. 送られてきたキー（合言葉）をダンボールに追加
+      newLinks.forEach(key => {
+        if (!pendingReadKeys.includes(key)) {
+          pendingReadKeys.push(key);
+        }
+      });
 
-      const options = { 
-        method: 'POST', 
-        mode: 'no-cors', 
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: payload 
-      };
+      // 2. もし出発待ちのトラック（タイマー）がいたら一旦ストップ！
+      if (syncTimer) {
+        clearTimeout(syncTimer);
+      }
 
-      if (urlSniper) fetch(urlSniper, options).catch(e => {});
-      if (url10) fetch(url10, options).catch(e => {});
+      // 3. 最後にクリックしてから2秒（2000ミリ秒）待って、一気にGASへ送信！
+      syncTimer = setTimeout(() => {
+        const linksToSend = [...pendingReadKeys];
+        pendingReadKeys = []; // ダンボールを空にする
+
+        const urlSniper = AppStorage.get("sh_sniper_url", ""); 
+        const url10 = AppStorage.get("sh_tensite_url", "");
+        
+        // 💡 ここでダンボールの中身（複数個）を一気にまとめて送る！
+        const payload = JSON.stringify({ command: 'saveViewedLinks', links: linksToSend });
+
+        const options = { 
+          method: 'POST', 
+          mode: 'no-cors', 
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: payload 
+        };
+
+        if (urlSniper) fetch(urlSniper, options).catch(e => {});
+        if (url10) fetch(url10, options).catch(e => {});
+      }, 2000); // 👈 ここが待機時間（2秒）。もっと早くしたければ1000でもOKやで！
     }
 
     document.addEventListener("DOMContentLoaded", function() {
