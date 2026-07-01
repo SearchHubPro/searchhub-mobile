@@ -815,36 +815,49 @@
       recalcBadges(); 
     }
 
-    // 📦 出発タイマーだけ準備
+    // 📦 まとめ送り用のダンボールと、出発タイマーを準備
+    let pendingReadKeys = [];
     let syncTimer = null;
 
-    // 💡 新規追加：GASに既読データを送る通信専用関数（絶対に取りこぼさない最強版！）
-    function syncMarkAsReadToGAS() {
-      // 1. もし出発待ちのトラック（タイマー）がいたら一旦ストップ！
+    // 💡 新規追加：GASに既読データを送る通信専用関数
+    function syncMarkAsReadToGAS(newLinks) {
+      // 1. 今回クリックされたURLをダンボールに追加
+      if (newLinks && Array.isArray(newLinks)) {
+        newLinks.forEach(key => {
+          if (!pendingReadKeys.includes(key)) {
+            pendingReadKeys.push(key);
+          }
+        });
+      }
+
+      // 2. 出発待ちのタイマーを一旦リセット
       if (syncTimer) {
         clearTimeout(syncTimer);
       }
 
-      // 2. 待機時間を「0.4秒（400ミリ秒）」に短縮！連打はまとめるけど一瞬で送る！
+      // 3. 0.5秒（500ミリ秒）だけ待って、まとまった分を一気に送る！
       syncTimer = setTimeout(() => {
+        if (pendingReadKeys.length === 0) return;
+
+        const linksToSend = [...pendingReadKeys];
+        pendingReadKeys = []; // 送る分だけ確定して箱を空にする
+
         const urlSniper = AppStorage.get("sh_sniper_url", ""); 
         const url10 = AppStorage.get("sh_tensite_url", "");
         
-        // 🎯 アプリが記憶してる「全履歴」を毎回フルで送るから、間が抜けることは絶対ない！
-        const payload = JSON.stringify({ command: 'saveViewedLinks', links: globalViewedLinks });
+        const payload = JSON.stringify({ command: 'saveViewedLinks', links: linksToSend });
 
         const options = { 
           method: 'POST', 
           mode: 'no-cors', 
-          keepalive: true, // 🚨 超重要：画面を閉じたりリロードしても、裏で絶対に通信を完了させる魔法！
+          // 🚨 keepalive は悪さするので完全に削除！
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: payload 
         };
 
-        // SniperとWatcherの両方に送信
         if (urlSniper) fetch(urlSniper, options).catch(e => {});
         if (url10) fetch(url10, options).catch(e => {});
-      }, 400); // 👈 2000じゃなくて400やで！
+      }, 500); // 👈 ここを 500（0.5秒）にするのが最強のバランスや！
     }
 
     document.addEventListener("DOMContentLoaded", function() {
